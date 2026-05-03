@@ -510,6 +510,9 @@ for i, col in enumerate(cols_to_plot):
 plt.show()
     """, language="python")
 
+    st.markdown("**Distribution Plots:**")
+    st.image("images/eda_distribution.png", use_container_width=True, caption="Distribution of Water Quality Parameters")
+
     st.markdown("""
     **Distribution Analysis Results:**
 
@@ -575,6 +578,9 @@ plt.title('Average Water Quality Metrics Over Time (Dual Axis: 2000-2023)', font
 plt.grid(True, linestyle='--', alpha=0.3)
 plt.show()
     """, language="python")
+
+    st.markdown("**Time Series Trend Plot:**")
+    st.image("images/eda_timeseries.png", use_container_width=True, caption="Average Water Quality Metrics Over Time (2000-2023)")
 
     st.markdown("""
     **Time Series Analysis Results:**
@@ -646,23 +652,8 @@ plt.title('Enhanced Correlation Matrix (Water Quality + Target)', fontsize=14)
 plt.show()
     """, language="python")
 
-    from static_data import CORRELATION_MATRIX
-
-    selected_features = CORRELATION_MATRIX["features"]
-    corr_data = CORRELATION_MATRIX["matrix"]
-    corr_df = pd.DataFrame(corr_data, columns=selected_features, index=selected_features)
-
-    fig = plt.figure(figsize=(10, 8))
-    sns.heatmap(
-        corr_df,
-        annot=True,
-        cmap='coolwarm',
-        fmt=".2f",
-        linewidths=0.5
-    )
-    plt.title('Enhanced Correlation Matrix (Water Quality + Target)', fontsize=14)
-    # plt.tight_layout()  # Disabled for cloud compatibility
-    st.pyplot(fig)
+    st.markdown("**Correlation Heatmap:**")
+    st.image("images/eda_correlation.png", use_container_width=True, caption="Correlation Matrix of Water Quality Parameters")
 
     st.markdown("""
     **Key Findings:**
@@ -811,58 +802,8 @@ rf_pipeline.fit(X_train, y_train)
     | R2 Score | {:.4f} |
     """.format(rmse_rf, mae_rf, r2_rf))
 
-    sns.set_theme(style="whitegrid")
-    fig_rf, axes_rf = plt.subplots(1, 2, figsize=(16, 6))
-
-    # Generate visualization data (use simulated data if model loading failed)
-    if y_test_sample is not None and y_pred_rf is not None:
-        sample_size = min(2000, len(y_test_sample))
-        if len(y_test_sample) > sample_size:
-            sample_idx_viz = np.random.choice(len(y_test_sample), size=sample_size, replace=False)
-            y_test_sample_rf = y_test_sample.iloc[sample_idx_viz] if isinstance(y_test_sample, pd.Series) else y_test_sample[sample_idx_viz]
-            y_pred_sample_rf = y_pred_rf[sample_idx_viz]
-        else:
-            y_test_sample_rf = y_test_sample
-            y_pred_sample_rf = y_pred_rf
-        axes_rf[0].scatter(y_test_sample_rf, y_pred_sample_rf, alpha=0.4, color='royalblue', edgecolor='k')
-        min_val_rf, max_val_rf = min(y_test_sample_rf.min(), y_pred_sample_rf.min()), max(y_test_sample_rf.max(), y_pred_sample_rf.max())
-        axes_rf[0].plot([min_val_rf, max_val_rf], [min_val_rf, max_val_rf], 'r--', lw=2)
-    else:
-        # Simulated data for visualization when model can't be loaded
-        np.random.seed(42)
-        y_actual_sim = np.random.normal(80, 15, 1000)
-        y_pred_sim = y_actual_sim + np.random.normal(0, 5, 1000)
-        axes_rf[0].scatter(y_actual_sim, y_pred_sim, alpha=0.4, color='royalblue', edgecolor='k')
-        min_val_rf, max_val_rf = 30, 100
-        axes_rf[0].plot([min_val_rf, max_val_rf], [min_val_rf, max_val_rf], 'r--', lw=2)
-    
-    axes_rf[0].set_title('Random Forest: Actual vs. Predicted CCME Values', fontsize=14, fontweight='bold')
-    axes_rf[0].set_xlabel('Actual CCME Values', fontsize=12)
-    axes_rf[0].set_ylabel('Predicted CCME Values', fontsize=12)
-
-    # Feature importance - use simulated data if model can't be loaded
-    if rf_pipeline is not None:
-        rf_model = rf_pipeline.named_steps['regressor']
-        cat_encoder_rf = rf_pipeline.named_steps['preprocessor'].named_transformers_['cat']
-        cat_names_rf = cat_encoder_rf.get_feature_names_out(cat_features)
-        all_features_rf = num_features + list(cat_names_rf)
-        importances_rf = rf_model.feature_importances_
-    else:
-        # Simulated feature importance data
-        all_features_rf = ['Dissolved Oxygen (mg/l)', 'Ammonia (mg/l)', 'Biochemical Oxygen Demand (mg/l)',
-                          'Orthophosphate (mg/l)', 'Nitrate (mg/l)', 'Nitrogen (mg/l)', 'Temperature',
-                          'pH (ph units)', 'Waterbody Type_Lake', 'Waterbody Type_River', 'Country_US']
-        importances_rf = np.array([0.28, 0.22, 0.15, 0.10, 0.08, 0.06, 0.05, 0.03, 0.02, 0.01, 0.0])
-    
-    indices_rf = np.argsort(importances_rf)[::-1]
-    top_n_rf = min(10, len(all_features_rf))
-    sns.barplot(x=importances_rf[indices_rf][:top_n_rf], y=np.array(all_features_rf)[indices_rf][:top_n_rf],
-                ax=axes_rf[1], hue=np.array(all_features_rf)[indices_rf][:top_n_rf], palette="viridis", legend=False)
-    axes_rf[1].set_title('Random Forest: Top 10 Feature Importances', fontsize=14, fontweight='bold')
-    axes_rf[1].set_xlabel('Relative Importance', fontsize=12)
-
-    # plt.tight_layout()  # Disabled for cloud compatibility
-    st.pyplot(fig_rf)
+    st.markdown("**Random Forest Evaluation Visualization:**")
+    st.image("images/rf_evaluation.png", use_container_width=True, caption="Random Forest: Actual vs Predicted and Feature Importance")
 
     st.markdown("""
     **Random Forest Visualization Analysis:**
@@ -957,57 +898,8 @@ xgb_pipeline.fit(X_train, y_train)
     | R2 Score | {:.4f} |
     """.format(rmse_xgb, mae_xgb, r2_xgb))
 
-    fig_xgb, axes_xgb = plt.subplots(1, 2, figsize=(16, 6))
-
-    # Generate visualization data (use simulated data if model loading failed)
-    if y_test_sample_xgb is not None and y_pred_xgb is not None:
-        sample_size_xgb = min(2000, len(y_test_sample_xgb))
-        if len(y_test_sample_xgb) > sample_size_xgb:
-            sample_idx_viz_xgb = np.random.choice(len(y_test_sample_xgb), size=sample_size_xgb, replace=False)
-            y_test_sample_xgb_viz = y_test_sample_xgb.iloc[sample_idx_viz_xgb] if isinstance(y_test_sample_xgb, pd.Series) else y_test_sample_xgb[sample_idx_viz_xgb]
-            y_pred_sample_xgb_viz = y_pred_xgb[sample_idx_viz_xgb]
-        else:
-            y_test_sample_xgb_viz = y_test_sample_xgb
-            y_pred_sample_xgb_viz = y_pred_xgb
-        axes_xgb[0].scatter(y_test_sample_xgb_viz, y_pred_sample_xgb_viz, alpha=0.4, color='darkorange', edgecolor='k')
-        min_val_xgb, max_val_xgb = min(y_test_sample_xgb_viz.min(), y_pred_sample_xgb_viz.min()), max(y_test_sample_xgb_viz.max(), y_pred_sample_xgb_viz.max())
-        axes_xgb[0].plot([min_val_xgb, max_val_xgb], [min_val_xgb, max_val_xgb], 'r--', lw=2)
-    else:
-        # Simulated data for visualization when model can't be loaded
-        np.random.seed(43)
-        y_actual_sim_xgb = np.random.normal(80, 15, 1000)
-        y_pred_sim_xgb = y_actual_sim_xgb + np.random.normal(0, 4, 1000)
-        axes_xgb[0].scatter(y_actual_sim_xgb, y_pred_sim_xgb, alpha=0.4, color='darkorange', edgecolor='k')
-        min_val_xgb, max_val_xgb = 30, 100
-        axes_xgb[0].plot([min_val_xgb, max_val_xgb], [min_val_xgb, max_val_xgb], 'r--', lw=2)
-    
-    axes_xgb[0].set_title('XGBoost: Actual vs. Predicted CCME Values', fontsize=14, fontweight='bold')
-    axes_xgb[0].set_xlabel('Actual CCME Values', fontsize=12)
-    axes_xgb[0].set_ylabel('Predicted CCME Values', fontsize=12)
-
-    # Feature importance - use simulated data if model can't be loaded
-    if xgb_pipeline is not None:
-        xgb_model = xgb_pipeline.named_steps['regressor']
-        cat_encoder_xgb = xgb_pipeline.named_steps['preprocessor'].named_transformers_['cat']
-        cat_names_xgb = cat_encoder_xgb.get_feature_names_out(cat_features)
-        all_features_xgb = num_features + list(cat_names_xgb)
-        importances_xgb = xgb_model.feature_importances_
-    else:
-        # Simulated feature importance data
-        all_features_xgb = ['Dissolved Oxygen (mg/l)', 'Ammonia (mg/l)', 'Biochemical Oxygen Demand (mg/l)',
-                          'Orthophosphate (mg/l)', 'Nitrate (mg/l)', 'Nitrogen (mg/l)', 'Temperature',
-                          'pH (ph units)', 'Waterbody Type_Lake', 'Waterbody Type_River', 'Country_US']
-        importances_xgb = np.array([0.30, 0.20, 0.14, 0.11, 0.09, 0.07, 0.04, 0.03, 0.01, 0.01, 0.0])
-    
-    indices_xgb = np.argsort(importances_xgb)[::-1]
-    top_n_xgb = min(10, len(all_features_xgb))
-    sns.barplot(x=importances_xgb[indices_xgb][:top_n_xgb], y=np.array(all_features_xgb)[indices_xgb][:top_n_xgb],
-                ax=axes_xgb[1], hue=np.array(all_features_xgb)[indices_xgb][:top_n_xgb], palette="magma", legend=False)
-    axes_xgb[1].set_title('XGBoost: Top 10 Feature Importances', fontsize=14, fontweight='bold')
-    axes_xgb[1].set_xlabel('Relative Importance', fontsize=12)
-
-    # plt.tight_layout()  # Disabled for cloud compatibility
-    st.pyplot(fig_xgb)
+    st.markdown("**XGBoost Evaluation Visualization:**")
+    st.image("images/xgb_evaluation.png", use_container_width=True, caption="XGBoost: Actual vs Predicted and Feature Importance")
 
     st.markdown("""
     **XGBoost Visualization Analysis:**
