@@ -6,6 +6,7 @@ import seaborn as sns
 import os
 import io
 import pickle
+import urllib.request
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
@@ -18,20 +19,27 @@ plt.rcParams['font.family'] = 'DejaVu Sans'
 
 RF_MODEL_PATH = "rf_model.pkl"
 XGB_MODEL_PATH = "xgb_model.pkl"
+DATA_URL_RIVER = "https://raw.githubusercontent.com/24236510-ui/wqd7012_groupwork/main/River_Water_Quality.csv"
+DATA_URL_COMBINED = "https://raw.githubusercontent.com/24236510-ui/wqd7012_groupwork/main/Combined_dataset.csv"
 
-st.set_page_config(
-    page_title="River Water Quality Prediction",
-    page_icon="🏞️",
-    layout="wide"
-)
+@st.cache_data
+def download_data():
+    if not os.path.exists("River_Water_Quality.csv"):
+        with st.spinner("Downloading River_Water_Quality.csv..."):
+            urllib.request.urlretrieve(DATA_URL_RIVER, "River_Water_Quality.csv")
+    if not os.path.exists("Combined_dataset.csv"):
+        with st.spinner("Downloading Combined_dataset.csv..."):
+            urllib.request.urlretrieve(DATA_URL_COMBINED, "Combined_dataset.csv")
 
 @st.cache_data
 def load_raw_data():
+    download_data()
     df = pd.read_csv("River_Water_Quality.csv")
     return df
 
 @st.cache_data
 def load_ml_data():
+    download_data()
     df = pd.read_csv("River_Water_Quality.csv")
     df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
     df = df.dropna(subset=['Date'])
@@ -144,6 +152,11 @@ def load_xgb_model():
     return pipeline
 
 def main():
+    st.set_page_config(
+        page_title="River Water Quality Prediction",
+        page_icon="🏞️",
+        layout="wide"
+    )
     st.title("🏞️ River Water Quality Prediction System")
     st.markdown("### Machine Learning-based Water Quality Index (CCME WQI) Prediction and Analysis")
 
@@ -154,7 +167,7 @@ def main():
         - [1.1 Original Dataset](#section1-1)
         - [1.2 Data Filtering](#section1-2)
         - [1.3 Preprocessing](#section1-3)
-        
+
         **2. EDA**
         - [2.1 Distribution](#section2-1)
         - [2.2 Time Series](#section2-2)
