@@ -511,7 +511,7 @@ plt.show()
     """, language="python")
 
     st.markdown("**Distribution Plots:**")
-    st.image("images/eda_distribution.png", use_container_width=True, caption="Distribution of Water Quality Parameters")
+    st.image("images/eda_distribution.png", width="stretch", caption="Distribution of Water Quality Parameters")
 
     st.markdown("""
     **Distribution Analysis Results:**
@@ -580,7 +580,7 @@ plt.show()
     """, language="python")
 
     st.markdown("**Time Series Trend Plot:**")
-    st.image("images/eda_timeseries.png", use_container_width=True, caption="Average Water Quality Metrics Over Time (2000-2023)")
+    st.image("images/eda_timeseries.png", width="stretch", caption="Average Water Quality Metrics Over Time (2000-2023)")
 
     st.markdown("""
     **Time Series Analysis Results:**
@@ -653,7 +653,7 @@ plt.show()
     """, language="python")
 
     st.markdown("**Correlation Heatmap:**")
-    st.image("images/eda_correlation.png", use_container_width=True, caption="Correlation Matrix of Water Quality Parameters")
+    st.image("images/eda_correlation.png", width="stretch", caption="Correlation Matrix of Water Quality Parameters")
 
     st.markdown("""
     **Key Findings:**
@@ -803,7 +803,7 @@ rf_pipeline.fit(X_train, y_train)
     """.format(rmse_rf, mae_rf, r2_rf))
 
     st.markdown("**Random Forest Evaluation Visualization:**")
-    st.image("images/rf_evaluation.png", use_container_width=True, caption="Random Forest: Actual vs Predicted and Feature Importance")
+    st.image("images/rf_evaluation.png", width="stretch", caption="Random Forest: Actual vs Predicted and Feature Importance")
 
     st.markdown("""
     **Random Forest Visualization Analysis:**
@@ -899,7 +899,7 @@ xgb_pipeline.fit(X_train, y_train)
     """.format(rmse_xgb, mae_xgb, r2_xgb))
 
     st.markdown("**XGBoost Evaluation Visualization:**")
-    st.image("images/xgb_evaluation.png", use_container_width=True, caption="XGBoost: Actual vs Predicted and Feature Importance")
+    st.image("images/xgb_evaluation.png", width="stretch", caption="XGBoost: Actual vs Predicted and Feature Importance")
 
     st.markdown("""
     **XGBoost Visualization Analysis:**
