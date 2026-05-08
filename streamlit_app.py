@@ -24,11 +24,11 @@ plt.rcParams['font.family'] = 'DejaVu Sans'
 RF_MODEL_PATH = "rf_model.pkl"
 XGB_MODEL_PATH = "xgb_model.pkl"
 CNN_MODEL_PATH = "best_hybrid_cnn.pth"
-DATA_URL_RIVER = "https://raw.githubusercontent.com/24236510-ui/wqd7012_groupwork/main/River_Water_Quality.csv"
-DATA_URL_COMBINED = "https://raw.githubusercontent.com/24236510-ui/wqd7012_groupwork/main/Combined_dataset.csv"
-MODEL_URL_RF = "https://raw.githubusercontent.com/24236510-ui/wqd7012_groupwork/main/rf_model.pkl"
-MODEL_URL_XGB = "https://raw.githubusercontent.com/24236510-ui/wqd7012_groupwork/main/xgb_model.pkl"
-MODEL_URL_CNN = "https://raw.githubusercontent.com/24236510-ui/wqd7012_groupwork/main/best_hybrid_cnn.pkl"
+DATA_URL_RIVER = "https://raw.githubusercontent.com/yuqALL/wqd7012_groupwork/main/River_Water_Quality.csv"
+DATA_URL_COMBINED = "https://raw.githubusercontent.com/yuqALL/wqd7012_groupwork/main/Combined_dataset.csv"
+MODEL_URL_RF = "https://raw.githubusercontent.com/yuqALL/wqd7012_groupwork/main/rf_model.pkl"
+MODEL_URL_XGB = "https://raw.githubusercontent.com/yuqALL/wqd7012_groupwork/main/xgb_model.pkl"
+MODEL_URL_CNN = "https://raw.githubusercontent.com/yuqALL/wqd7012_groupwork/main/best_hybrid_cnn.pth"
 
 # Precomputed evaluation results for remote display (matched with ipynb)
 PRECOMPUTED_RESULTS = {
