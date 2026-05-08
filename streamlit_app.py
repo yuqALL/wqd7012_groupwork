@@ -79,6 +79,13 @@ def download_models():
         except Exception as e:
             st.warning(f"Failed to download XGB model: {e}")
             success = False
+    if not os.path.exists(CNN_MODEL_PATH):
+        try:
+            with st.spinner("Downloading Hybrid CNN model..."):
+                urllib.request.urlretrieve(MODEL_URL_CNN, CNN_MODEL_PATH)
+        except Exception as e:
+            st.warning(f"Failed to download CNN model: {e}")
+            success = False
     return success
 
 @st.cache_data
