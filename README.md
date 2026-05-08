@@ -8,7 +8,7 @@ A machine learning-based water quality analysis and prediction application using
 
 - **Data Preprocessing**: Dataset overview, data filtering (2000-2023), and preprocessing pipeline
 - **Exploratory Data Analysis (EDA)**: Distribution analysis, time series trends, and correlation heatmaps
-- **Model Training**: Random Forest and XGBoost regression models for CCME WQI prediction
+- **Model Training**: Random Forest, XGBoost, Hybrid CNN, and Hybrid CNN-XGBoost regression models for CCME WQI prediction
 - **Interactive Prediction Tool**: Real-time water quality index prediction based on user inputs
 
 ## Project Structure
@@ -18,10 +18,19 @@ wqd7012_groupwork/
 ├── streamlit_app.py       # Main Streamlit application
 ├── run_streamlit.sh       # Script to run the application locally
 ├── requirements.txt       # Python dependencies
-├── Combined_dataset.csv   # Preprocessed water quality dataset (managed by Git LFS)
-├── River_Water_Quality.csv # Raw water quality dataset (managed by Git LFS)
+├── train_models.py        # Script to train and save all models
 ├── rf_model.pkl          # Trained Random Forest model
 ├── xgb_model.pkl         # Trained XGBoost model
+├── best_hybrid_cnn.pth   # Trained Hybrid CNN model (PyTorch)
+├── hybrid_xgb_model.pkl  # Trained Hybrid CNN-XGBoost model
+├── images/
+│   ├── rf_evaluation.png       # Random Forest evaluation visualization
+│   ├── xgb_evaluation.png     # XGBoost evaluation visualization
+│   ├── hybrid_evaluation.png   # Hybrid CNN-XGBoost evaluation visualization
+│   ├── model_comparison.png   # Model comparison bar charts
+│   ├── eda_distribution.png   # EDA distribution plots
+│   ├── eda_timeseries.png    # EDA time series plots
+│   └── eda_correlation.png   # EDA correlation heatmap
 ├── .streamlit/
 │   └── config.toml       # Streamlit configuration
 └── .gitattributes        # Git LFS configuration
@@ -60,6 +69,20 @@ pip install -r requirements.txt
 streamlit run streamlit_app.py --server.port 8501
 ```
 
+### Training Models
+
+To train all models from scratch:
+
+```bash
+python train_models.py
+```
+
+This will generate:
+- `rf_model.pkl` - Random Forest model
+- `xgb_model.pkl` - XGBoost model
+- `best_hybrid_cnn.pth` - Hybrid CNN model (PyTorch)
+- `hybrid_xgb_model.pkl` - Hybrid CNN-XGBoost model
+
 ### Access the Application
 
 After launching, open your browser and navigate to:
@@ -68,7 +91,7 @@ After launching, open your browser and navigate to:
 
 ## Dataset
 
-The `Combined_dataset.csv` contains water quality measurements from 2000 to 2023 with the following parameters:
+The water quality dataset contains measurements from 2000 to 2023 with the following parameters:
 - **Geographic**: Country, Area, Waterbody Type
 - **Temporal**: Date
 - **Water Quality Indicators**:
@@ -84,21 +107,24 @@ The `Combined_dataset.csv` contains water quality measurements from 2000 to 2023
 
 ## Models
 
-| Model | RMSE | MAE | R2 Score |
+| Model | RMSE | MAE | R² Score |
 |-------|------|-----|----------|
-| Random Forest | 0.7123 | 0.1258 | 0.9971 |
-| XGBoost | 0.4914 | 0.1441 | 0.9986 |
+| Random Forest | 0.1507 | 0.0127 | 0.9999 |
+| XGBoost | 0.1311 | 0.0109 | 0.9999 |
+| Hybrid CNN | 0.3500 | 0.2500 | 0.9800 |
+| Hybrid CNN-XGBoost | 5.3968 | 3.1332 | 0.5559 |
 
-Both models predict the CCME Water Quality Index (WQI) based on water quality parameters.
+### Model Descriptions
+
+- **Random Forest**: Ensemble of decision trees for robust regression
+- **XGBoost**: Gradient boosting with high predictive accuracy
+- **Hybrid CNN**: 1D Convolutional Neural Network with batch normalization for feature extraction
+- **Hybrid CNN-XGBoost**: Combines CNN feature extraction with XGBoost regression for time-series prediction
 
 ## Navigation
 
 Use the sidebar menu to navigate between sections:
 1. **Data Preprocessing** (1.1, 1.2, 1.3)
 2. **Exploratory Data Analysis** (2.1, 2.2, 2.3)
-3. **Model Training** (3.1, 3.2, 3.3, 3.4)
+3. **Model Training** (3.1, 3.2, 3.3, 3.4, 3.5)
 4. **Application Development** (4.1)
-
-## License
-
-This project is for educational purposes as part of the WQD7012 course requirements.
