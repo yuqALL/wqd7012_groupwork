@@ -270,12 +270,20 @@ def load_cnn_model():
 
 def main():
     st.set_page_config(
-        page_title="River Water Quality Prediction",
+        page_title="River Water Quality Prediction and Contamination Detection using Machine Learning",
         page_icon="🏞️",
         layout="wide"
     )
-    st.title("🏞️ River Water Quality Prediction System")
-    st.markdown("### Machine Learning-based Water Quality Index (CCME WQI) Prediction and Analysis")
+    st.title("🏞️ River Water Quality Prediction and Contamination Detection using Machine Learning")
+    st.markdown("""
+## 🌌 **Group Members:**
+
+1. **Muhammad Naqib Syahmi bin Ab Razak 23073950**
+2. **Long Yun 24213952**
+3. **An Lulu 24236510**
+4. **Wei Zihan 24233259**
+5. **Xie Zhicheng 23093258**
+    """)
 
     with st.sidebar:
         st.header("📋 Navigation")
@@ -382,7 +390,7 @@ Water_Quality_df.head()
     consistent and meaningful analysis, we apply specific filtering criteria in two sequential steps.
     """)
 
-    st.markdown("**Step 1: Filter by Date Range (2000-2023)**")
+    st.markdown("**Step 1: Filter by Date Range (2000-2025)**")
     st.markdown("""
     **Rationale for Removing Pre-2000 Data:**
     
@@ -393,7 +401,7 @@ Water_Quality_df.head()
        formats across different time periods.
        
     2. **Temporal Relevance:** This study focuses on recent water quality trends and patterns. Data from 
-       the past 23 years (2000-2023) provides a more relevant and current picture of water quality 
+       the past 25 years (2000-2025) provides a more relevant and current picture of water quality 
        conditions, which is more applicable for developing predictive models and informing contemporary 
        water management decisions.
        
@@ -408,9 +416,12 @@ Water_Quality_df = pd.read_csv("Combined_dataset.csv")
 # Step 2: Convert Date column to datetime format
 Water_Quality_df['Date'] = pd.to_datetime(Water_Quality_df['Date'], format='%d-%m-%Y')
 
-# Step 3: Filter by date range (2000-2023)
-# This ensures temporal consistency and focuses on recent data
-Water_Quality_df = Water_Quality_df[(Water_Quality_df['Date'] >= '2000-01-01') & (Water_Quality_df['Date'] <= '2023-12-31')]
+# Step 3: Filter by date range (2000-2025)
+Water_Quality_df = Water_Quality_df[(Water_Quality_df['Date'] >= '2000-01-01') & (Water_Quality_df['Date'] <= '2025-12-31')]
+Water_Quality_df = Water_Quality_df.reset_index(drop=True)
+
+Water_Quality_df.info()
+Water_Quality_df["Date"].min(), Water_Quality_df["Date"].max()
     """, language="python")
 
     st.markdown("**After Date Filtering - Dataset Overview:**")
@@ -436,8 +447,9 @@ Water_Quality_df = Water_Quality_df[(Water_Quality_df['Date'] >= '2000-01-01') &
 
     st.code("""
 # Step 4: Filter by waterbody type (River only)
-# Focus on river ecosystems for consistent analysis
 River_Water_Quality_df = Water_Quality_df[Water_Quality_df['Waterbody Type'] == 'River']
+River_Water_Quality_df = River_Water_Quality_df.reset_index(drop=True)
+River_Water_Quality_df.info()
 
 # Step 5: Save filtered dataset for further analysis
 River_Water_Quality_df.to_csv("River_Water_Quality.csv", index=False)
@@ -454,7 +466,7 @@ River_Water_Quality_df.to_csv("River_Water_Quality.csv", index=False)
     | Features | 14 columns |
     | Non-Null Values | 100% across all columns |
     | Data Types | 9 float64, 4 object, 1 datetime64 |
-    | Countries | Canada |
+    | Countries | Canada, England, USA, Ireland |
     | Waterbody Type | River |
     """)
 
@@ -479,16 +491,19 @@ River_Water_Quality_df.to_csv("River_Water_Quality.csv", index=False)
     | CCME_Values | 1,629,890 | 100% |
     | CCME_WQI | 1,629,890 | 100% |
     """)
-
+    st.code("""
+River_Water_Quality_df = pd.read_csv("River_Water_Quality.csv")
+River_Water_Quality_df.head()
+    """, language="python")
     st.markdown("**Dataset Preview (First 5 Records):**")
     st.markdown("""
-    | Country | Area | Waterbody Type | Date | Ammonia (mg/l) | BOD (mg/l) | DO (mg/l) | Orthophosphate (mg/l) | pH | Temp (°C) | Nitrogen (mg/l) | Nitrate (mg/l) | CCME_Values | CCME_WQI |
-    |---------|------|----------------|------|----------------|------------|-----------|----------------------|-----|-----------|----------------|----------------|--------------|----------|
-    | Canada | ON-River-001 | River | 2000-01-15 | 0.12 | 2.5 | 8.1 | 0.03 | 7.2 | 15.0 | 1.2 | 0.8 | 85.5 | Good |
-    | Canada | ON-River-002 | River | 2000-02-20 | 0.08 | 1.8 | 9.2 | 0.02 | 7.4 | 12.0 | 0.9 | 0.5 | 92.3 | Excellent |
-    | Canada | BC-River-001 | River | 2000-03-10 | 0.15 | 3.1 | 7.8 | 0.04 | 6.9 | 18.0 | 1.5 | 1.2 | 78.2 | Good |
-    | Canada | QC-River-001 | River | 2000-04-05 | 0.10 | 2.2 | 8.5 | 0.025 | 7.3 | 14.0 | 1.0 | 0.6 | 88.7 | Good |
-    | Canada | AB-River-001 | River | 2000-05-12 | 0.18 | 2.8 | 7.5 | 0.035 | 7.0 | 20.0 | 1.8 | 1.5 | 75.3 | Fair |
+    | Country | Area | Waterbody Type | Date | Ammonia (mg/l) | Biochemical Oxygen Demand (mg/l) | Dissolved Oxygen (mg/l) | Orthophosphate (mg/l) | pH (ph units) | Temperature (cel) | Nitrogen (mg/l) | Nitrate (mg/l) | CCME_Values | CCME_WQI |
+    |---------|------|----------------|------|----------------|-----------------------------------|-------------------------|-----------------------|---------------|-------------------|-----------------|----------------|--------------|----------|
+    | Canada | LI110048 | River | 2000-01-12 | 0.05152 | 3.90760 | 11.684103 | 0.01 | 8.3700 | 10.00 | 0.241667 | 9.73940 | 100.0 | Excellent |
+    | Canada | LI110048 | River | 2001-01-12 | 0.06440 | 3.33070 | 8.800000 | 0.01 | 8.1667 | 10.27 | 0.276000 | 10.62480 | 100.0 | Excellent |
+    | Canada | LI110048 | River | 2002-01-12 | 0.07728 | 3.19160 | 10.033300 | 0.01 | 8.0167 | 10.00 | 0.319000 | 8.72119 | 100.0 | Excellent |
+    | Canada | LI110048 | River | 2003-01-12 | 0.09016 | 3.77391 | 11.475000 | 0.01 | 7.7900 | 8.68 | 0.202000 | 9.51805 | 100.0 | Excellent |
+    | Canada | LI110048 | River | 2004-01-12 | 0.10304 | 5.06000 | 11.733300 | 0.01 | 8.1583 | 8.43 | 0.355000 | 8.63265 | 100.0 | Excellent |
     """)
 
     st.markdown("---")
@@ -496,12 +511,16 @@ River_Water_Quality_df.to_csv("River_Water_Quality.csv", index=False)
     st.subheader("1.3 Data Preprocessing")
 
     st.markdown("""
-    Data preprocessing is a critical step in preparing the dataset for analysis. This section focuses on identifying
-    and addressing data quality issues such as missing values, ensuring appropriate data types, and removing
-    any duplicate entries that could compromise the accuracy of subsequent analyses.
+    Data preprocessing is a critical step in preparing the dataset for analysis. This section focuses on identifying and addressing data quality issues such as missing values, ensuring appropriate data types, and removing any duplicate entries that could compromise the accuracy of subsequent analyses.
     """)
 
     st.markdown("**Missing Values Analysis:**")
+    st.code("""
+# Check for missing values
+missing_values = River_Water_Quality_df.isna().sum()
+print("\\n Missing values in each column")
+print(missing_values)
+    """, language="python")
     st.markdown("""
     After filtering, the dataset shows **100% completeness** across all columns with **no missing values**:
     
@@ -525,41 +544,15 @@ River_Water_Quality_df.to_csv("River_Water_Quality.csv", index=False)
 
     st.markdown("**Data Preprocessing Code:**")
     st.code("""
-# Step 1: Check missing values in each column
-missing_values = River_Water_Quality_df.isna().sum()
-print("Missing values per column:", missing_values)
-
-# Step 2: For numeric columns, fill missing values with column mean
-# This preserves the data distribution while handling missing entries
+# (If there is missing values) For numeric columns, fill missing values with their mean
 numeric_cols = River_Water_Quality_df.select_dtypes(include=['number']).columns
-River_Water_Quality_df[numeric_cols] = River_Water_Quality_df[numeric_cols].fillna(
-    River_Water_Quality_df[numeric_cols].mean()
-)
 
-# Step 3: Verify data integrity - check unique countries
-countries = River_Water_Quality_df["Country"].unique()
-print("Countries in dataset:", countries)
+River_Water_Quality_df[numeric_cols] = River_Water_Quality_df[numeric_cols].fillna(River_Water_Quality_df[numeric_cols].mean())
+
+# Check number of unique countries in the dataset
+country = River_Water_Quality_df["Country"].unique()
+print(country)
     """, language="python")
-
-    st.markdown("**Data Types Verification:**")
-    st.markdown("""
-    | Column Name | Data Type |
-    |-------------|-----------|
-    | Country | object |
-    | Area | object |
-    | Waterbody Type | object |
-    | Date | datetime64[ns] |
-    | Ammonia (mg/l) | float64 |
-    | Biochemical Oxygen Demand (mg/l) | float64 |
-    | Dissolved Oxygen (mg/l) | float64 |
-    | Orthophosphate (mg/l) | float64 |
-    | pH (ph units) | float64 |
-    | Temperature (cel) | float64 |
-    | Nitrogen (mg/l) | float64 |
-    | Nitrate (mg/l) | float64 |
-    | CCME_Values | float64 |
-    | CCME_WQI | object |
-    """)
 
     st.markdown("**Summary Statistics:**")
     col1, col2, col3 = st.columns(3)
@@ -580,7 +573,7 @@ print("Countries in dataset:", countries)
     st.markdown("---")
 
     st.markdown('<a id="section2-1"></a>', unsafe_allow_html=True)
-    st.subheader("2.1 Univariate Distribution Analysis")
+    st.subheader("2.1 Univariate Distribution Analysis This helps identify outliers and the distribution shape of key metrics.")
 
     st.markdown("""
     Understanding the distribution of water quality metrics is essential for identifying patterns and potential anomalies.
@@ -621,27 +614,16 @@ plt.show()
     st.image("images/eda_distribution.png", width="stretch", caption="Distribution of Water Quality Parameters")
 
     st.markdown("""
-    **Distribution Analysis Results:**
+    **⭐️ Interpretation of EDA 1**
 
-    The distribution analysis reveals distinct patterns for each water quality parameter:
+    From the distribution plots, Ammonia and Orthophosphate show clear right-skewed distributions, where most observations are concentrated at lower concentration levels while a smaller number of samples contain much higher values. This suggests that water quality is generally within normal conditions, although occasional pollution spikes or contamination events are present.
 
-    | Parameter | Distribution Type | Key Observation |
-    |-----------|-----------------|-----------------|
-    | Ammonia (mg/l) | Right-skewed (Log-normal) | Most values < 0.5 mg/l, with occasional high pollution events |
-    | Dissolved Oxygen (mg/l) | Approximately Normal | Centered around 8 mg/l (healthy level for rivers) |
-    | Orthophosphate (mg/l) | Right-skewed | Most values concentrated at lower levels, occasional spikes |
-
-    **Key Finding:** From the distribution plots, Ammonia and Orthophosphate show clear right-skewed distributions,
-    where most observations are concentrated at lower concentration levels while a smaller number of samples
-    contain much higher values. This suggests that water quality is generally within normal conditions,
-    although occasional pollution spikes or contamination events are present. Dissolved Oxygen (DO) is more
-    concentrated around higher values, indicating relatively healthy oxygen conditions in most water samples,
-    with only a few lower-value observations suggesting possible environmental stress.
+    Dissolved Oxygen (DO) is more concentrated around higher values, indicating relatively healthy oxygen conditions in most water samples, with only a few lower-value observations suggesting possible environmental stress.
     """)
 
     st.markdown("---")
     st.markdown('<a id="section2-2"></a>', unsafe_allow_html=True)
-    st.subheader("2.2 Time Series Trend Analysis")
+    st.subheader("2.2 Time Series Trend Analysis Observing how water quality metrics have evolved over the years.")
 
     st.markdown("""
     Analyzing water quality trends over time helps us understand how environmental conditions have changed
@@ -653,18 +635,19 @@ plt.show()
 
     st.markdown("**Time Series Trend Analysis Code:**")
     st.code("""
-# 1. Extract year and calculate the yearly average by Country
-df['Year'] = df['Date'].dt.year
+# Extract year and calculate the yearly average
+River_Water_Quality_df['Year'] = River_Water_Quality_df['Date'].dt.year
 
 # Group by Year and Country
-yearly_country_avg = df.groupby(['Year', 'Country'])[['Ammonia (mg/l)', 'Dissolved Oxygen (mg/l)', 'Orthophosphate (mg/l)']].mean().reset_index()
+yearly_country_avg = River_Water_Quality_df.groupby(['Year', 'Country'])[['Ammonia (mg/l)', 'Dissolved Oxygen (mg/l)', 'Orthophosphate (mg/l)']].mean().reset_index()
 
-# 2. Plot Trends by Country
+# Plot Trends
 fig, axes = plt.subplots(1, 3, figsize=(22, 6), sharex=True)
 
 # --- Plot 1: Ammonia Trends ---
 sns.lineplot(data=yearly_country_avg, x='Year', y='Ammonia (mg/l)',
              hue='Country', marker='o', ax=axes[0])
+
 axes[0].set_title('Average Ammonia Levels by Country', fontsize=14, fontweight='bold')
 axes[0].set_xlabel('Year', fontsize=12)
 axes[0].set_ylabel('Ammonia (mg/l)', fontsize=12)
@@ -673,6 +656,7 @@ axes[0].grid(True, linestyle='--', alpha=0.3)
 # --- Plot 2: Dissolved Oxygen Trends ---
 sns.lineplot(data=yearly_country_avg, x='Year', y='Dissolved Oxygen (mg/l)',
              hue='Country', marker='D', ax=axes[1])
+
 axes[1].set_title('Average Dissolved Oxygen by Country', fontsize=14, fontweight='bold')
 axes[1].set_xlabel('Year', fontsize=12)
 axes[1].set_ylabel('Dissolved Oxygen (mg/l)', fontsize=12)
@@ -681,12 +665,19 @@ axes[1].grid(True, linestyle='--', alpha=0.3)
 # --- Plot 3: Orthophosphate Trends ---
 sns.lineplot(data=yearly_country_avg, x='Year', y='Orthophosphate (mg/l)',
              hue='Country', marker='s', ax=axes[2])
+
 axes[2].set_title('Average Orthophosphate Levels by Country', fontsize=14, fontweight='bold')
 axes[2].set_xlabel('Year', fontsize=12)
 axes[2].set_ylabel('Orthophosphate (mg/l)', fontsize=12)
 axes[2].grid(True, linestyle='--', alpha=0.3)
 
-fig.suptitle('Temporal Trends of Water Quality Parameters by Country', fontsize=18, fontweight='bold', y=1.03)
+fig.suptitle(
+    'Temporal Trends of Water Quality Parameters by Country',
+    fontsize=18,
+    fontweight='bold',
+    y=1.03
+)
+
 plt.tight_layout()
 plt.show()
     """, language="python")
@@ -695,21 +686,16 @@ plt.show()
     st.image("images/eda_timeseries.png", width="stretch", caption="Temporal Trends of Water Quality Parameters by Country (2000-2023)")
 
     st.markdown("""
-    **Time Series Analysis Results:**
+    **⭐️ Interpretation of EDA 2**
 
-    The temporal trend plots indicate that ammonia and orthophosphate concentrations generally decrease
-    over time in several countries, suggesting improvements in water quality and reduced nutrient pollution.
-    However, some noticeable spikes are still present, particularly in Canada, indicating occasional
-    pollution events or fluctuations in environmental conditions.
+    The temporal trend plots indicate that ammonia and orthophosphate concentrations generally decrease over time in several countries, suggesting improvements in water quality and reduced nutrient pollution. However, some noticeable spikes are still present, particularly in Canada, indicating occasional pollution events or fluctuations in environmental conditions.
 
-    Dissolved oxygen levels remain relatively stable across the years, with most countries maintaining
-    values around healthy ranges for rivers. Minor fluctuations are observed, but overall oxygen
-    conditions appear consistent.
+    Dissolved oxygen levels remain relatively stable across the years, with most countries maintaining values around healthy ranges for rivers. Minor fluctuations are obsered, but overall oxygen conditions appear consistent.
     """)
 
     st.markdown("---")
     st.markdown('<a id="section2-3"></a>', unsafe_allow_html=True)
-    st.subheader("2.3 Correlation Analysis")
+    st.subheader("2.3 Correlation Analysis Using a heatmap to identify linear relationships between features.")
 
     st.markdown("""
     Understanding the relationships between different water quality parameters is crucial for building effective
@@ -720,40 +706,25 @@ plt.show()
 
     st.markdown("**Correlation Analysis Code:**")
     st.code("""
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
-
-# 1. Define important features (INCLUDING supervisor-required variables)
-selected_features = [
-    'Ammonia (mg/l)',
-    'Biochemical Oxygen Demand (mg/l)',
-    'Dissolved Oxygen (mg/l)',
-    'Orthophosphate (mg/l)',
-    'Nitrate (mg/l)',
-    'Nitrogen (mg/l)',
-    'Temperature',
-    'pH',
-    'CCME_Values'
+# Define selected features
+selected_features = ['Ammonia (mg/l)', 'Biochemical Oxygen Demand (mg/l)', 'Dissolved Oxygen (mg/l)',
+                     'Orthophosphate (mg/l)', 'Nitrate (mg/l)', 'Nitrogen (mg/l)',
+                     'Temperature', 'pH', 'CCME_Values'
 ]
 
-# 2. Keep only existing columns (avoid crash if some missing)
-selected_features = [col for col in selected_features if col in df.columns]
+# Keep only existing columns
+selected_features = [col for col in selected_features if col in River_Water_Quality_df.columns]
 
-# 3. Create subset
-subset_df = df[selected_features]
+# Create subset
+subset_df = River_Water_Quality_df[selected_features]
 
-# 4. Compute correlation
+# Compute correlation
 corr_matrix = subset_df.corr()
 
-# 5. Plot full heatmap (NO mask this time, more informative)
+# Plot full heatmap
 plt.figure(figsize=(10, 8))
-sns.heatmap(
-    corr_matrix,
-    annot=True,
-    cmap='coolwarm',
-    fmt=".2f",
-    linewidths=0.5
+sns.heatmap(corr_matrix, annot=True, cmap='coolwarm',
+            fmt=".2f", linewidths=0.5
 )
 
 plt.title('Water Quality Parameters Correlation Matrix', fontsize=14)
@@ -765,18 +736,13 @@ plt.show()
     st.image("images/eda_correlation.png", width="stretch", caption="Correlation Matrix of Water Quality Parameters")
 
     st.markdown("""
-    **Key Findings:**
-    - **Nitrate and Nitrogen** have a strong positive correlation, indicating that these nutrient-related
-      parameters tend to increase together and may originate from similar pollution sources such as
-      river wastewater discharge.
-    - **Orthophosphate** also shows moderate positive correlations with nitrate and nitrogen, suggesting
-      interconnected nutrient pollution dynamics.
-    - **Most pollution-related parameters**, including ammonia, orthophosphate, nitrate, and nitrogen,
-      exhibit negative correlations with the CCME Water Quality Index, indicating that higher pollutant
-      concentrations are associated with poorer water quality conditions. Among these, orthophosphate
-      and nitrogen demonstrate relatively stronger negative relationships with water quality index (WQI).
-    - **Dissolved Oxygen** shows a slight positive correlation with WQI, suggesting that higher oxygen
-      levels are generally associated with healthier river environments.
+    **⭐️ Interpretation of EDA 3**
+
+    The correlation matrix shows that nitrate and nitrogen have a strong positive correlation, indicating that these nutrient-related parameters tend to increase together and may originate from similar pollution sources such as river wastewater discharge. Orthophosphate also shows moderate positive correlations with nitrate and nitrogen, suggesting interconnected nutrient pollution dynamics.
+
+    Most pollution-related parameters, including ammonia, orthophosphate, nitrate, and nitrogen, exhibit negative correlations with the CCME Water Quality Index, indicating that higher pollutant concentrations are associated with poorer water quality conditions. Among these, orthophosphate and nitrogen demonstrate relatively stronger negative relationships with water quality index (WQI).
+
+    In contrast, Dissolved Oxygen shows a slight positive correlation with WQI, suggesting that higher oxygen levels are generally associated with healthier river environments.
     """)
 
     # ============================================
@@ -787,64 +753,67 @@ plt.show()
     st.markdown("---")
     st.header("3. Model Training")
     st.markdown("""
-    This chapter focuses on building and evaluating machine learning models to predict water quality index (CCME_Values).
-    We develop two regression models—Random Forest and XGBoost—to analyze water quality data and identify the most
-    important factors affecting water quality. Both models are evaluated using standard regression metrics and
-    visualizations to ensure reliable and interpretable results.
+    **Regression models** are designed to handle problem with numeric target variable. To access predictive performance and interpretability, different regression model will be compared.
+
+    | Model | Description |
+    | --- | --- |
+    | **Random Forest** | Non-linear model that handles complex relationship between variables. |
+    | **XGBoost** | An optimized gradient boosting framework that offers regularization and high performance for structured data problems |
+    | **Hybrid CNN-XGBoost** | A hybrid model that combines Convolutional Neural Network (CNN) based feature extraction with XGBoost regression to capture complex patterns and improve predictive performance |
     """)
+    st.code("""
+df_base_clean = River_Water_Quality_df.copy()
+
+# Format Date column
+df_base_clean['Date'] = pd.to_datetime(df_base_clean['Date'])
+
+# Drop rows missing target values
+df_base_clean = df_base_clean.dropna(subset=['CCME_Values'])
+
+# Fill missing values for numerical columns with mean
+numeric_cols = df_base_clean.select_dtypes(include=['number']).columns
+df_base_clean[numeric_cols] = df_base_clean[numeric_cols].fillna(df_base_clean[numeric_cols].mean())
+
+# Drop the classification target to prevent target leakage
+if 'CCME_WQI' in df_base_clean.columns:
+    df_base_clean = df_base_clean.drop(columns=['CCME_WQI'])
+
+print(f"Common dataframe generated successfully. Shape: {df_base_clean.shape}")
+df_base_clean.head()
+    """, language="python")
     st.markdown("---")
 
     st.markdown('<a id="section3-1"></a>', unsafe_allow_html=True)
     st.subheader("3.1 Data Preparation for Machine Learning")
 
     st.markdown("""
-    Before building machine learning models, the cleaned dataset requires additional preparation to ensure optimal
-    model performance. This involves creating meaningful features from existing data and removing any columns
-    that could introduce bias or overfitting. We extract temporal features from the Date column to capture
-    seasonal patterns and long-term trends, and carefully select features that will help the model learn
-    meaningful patterns in water quality data.
+    **Cross-sectional Data Pipeline**
+
+    This data pipeline branch prepares the flat, tabular dataset specifically designed for the machine learning models (Random Forest, XGBoost, and Hybrid CNN-XGBoost). Unused columms (`Area`, `Country`, `Waterbody Type`, `Date`, `Area`) are removed from the dataset
     """)
 
     st.code("""
-# 1. Load and copy the cleaned dataset
-df_cleaned = River_Water_Quality_df.copy()
+df_baseline = df_base_clean.copy()
 
-# 2. Extract temporal features for pattern recognition
-df_cleaned['Date'] = pd.to_datetime(df_cleaned['Date'])
-df_cleaned['Year'] = df_cleaned['Date'].dt.year    # Capture long-term trends
-df_cleaned['Month'] = df_cleaned['Date'].dt.month  # Capture seasonality
+# Drop unused columns
+cols_to_drop = ['Country', 'Waterbody Type', 'Date', 'Area']
+df_baseline = df_baseline.drop(columns=[col for col in cols_to_drop if col in df_baseline.columns])
 
-# 3. Remove columns that could cause target leakage or overfitting:
-#    - CCME_WQI: Categorical label encoding the same target (CCME_Values)
-#    - Area: High-cardinality categorical (too many unique values)
-#    - Date: Already extracted into Year and Month
-cols_to_drop = ['Date', 'CCME_WQI', 'Area']
-df_cleaned = df_cleaned.drop(columns=[col for col in cols_to_drop if col in df_cleaned.columns])
+# Export clean data for ML modeling
+df_baseline.to_csv("River_Water_Quality_df_Final.csv", index=False)
 
-# 4. Remove rows with missing target values
-df_cleaned = df_cleaned.dropna(subset=['CCME_Values'])
-
-# 5. Export ML-ready dataset
-df_cleaned.to_csv("River_Water_Quality_ML_Ready.csv", index=False)
-print("ML-ready dataset generated successfully!")
+df_baseline.head()
     """, language="python")
 
     st.markdown("**Dataset Preview:**")
     st.markdown("""
-| Country | Waterbody Type | Year | Month | Ammonia (mg/l) | BOD (mg/l) | DO (mg/l) | Orthophosphate (mg/l) | pH | Temp (cel) | Nitrogen (mg/l) | Nitrate (mg/l) | CCME_Values |
-|---------|---------------|------|-------|----------------|------------|-----------|----------------------|-----|------------|-----------------|----------------|-------------|
-| Canada | River | 2020 | 6 | 0.12 | 2.5 | 8.1 | 0.03 | 7.2 | 15.0 | 1.2 | 0.8 | 85.5 |
-| Canada | River | 2020 | 7 | 0.08 | 1.8 | 9.2 | 0.02 | 7.4 | 18.0 | 0.9 | 0.5 | 92.3 |
-| Canada | River | 2020 | 8 | 0.15 | 3.1 | 7.8 | 0.04 | 6.9 | 22.0 | 1.5 | 1.2 | 78.2 |
-| England | River | 2020 | 6 | 0.10 | 2.0 | 8.5 | 0.05 | 7.1 | 16.0 | 1.0 | 0.6 | 88.0 |
-| England | River | 2020 | 7 | 0.09 | 1.9 | 8.8 | 0.04 | 7.3 | 17.0 | 0.8 | 0.4 | 90.1 |
-    """)
-
-    st.markdown("""
-    **Feature Engineering Rationale:**
-    - **Year, Month:** Extracted from Date to capture temporal patterns in water quality
-    - **Dropped CCME_WQI:** Prevents target leakage as it's derived from CCME_Values
-    - **Dropped Area:** High cardinality would cause overfitting and excessive memory usage
+    | Ammonia (mg/l) | Biochemical Oxygen Demand (mg/l) | Dissolved Oxygen (mg/l) | Orthophosphate (mg/l) | pH (ph units) | Temperature (cel) | Nitrogen (mg/l) | Nitrate (mg/l) | CCME_Values |
+    |----------------|-----------------------------------|-------------------------|-----------------------|---------------|-------------------|-----------------|----------------|-------------|
+    | 0.05152 | 3.90760 | 11.684103 | 0.01 | 8.3700 | 10.00 | 0.241667 | 9.73940 | 100.0 |
+    | 0.06440 | 3.33070 | 8.800000 | 0.01 | 8.1667 | 10.27 | 0.276000 | 10.62480 | 100.0 |
+    | 0.07728 | 3.19160 | 10.033300 | 0.01 | 8.0167 | 10.00 | 0.319000 | 8.72119 | 100.0 |
+    | 0.09016 | 3.77391 | 11.475000 | 0.01 | 7.7900 | 8.68 | 0.202000 | 9.51805 | 100.0 |
+    | 0.10304 | 5.06000 | 11.733300 | 0.01 | 8.1583 | 8.43 | 0.355000 | 8.63265 | 100.0 |
     """)
 
     st.markdown("---")
@@ -852,41 +821,60 @@ print("ML-ready dataset generated successfully!")
     st.subheader("3.2 Random Forest Regressor")
 
     st.markdown("""
-    We construct a machine learning pipeline to prevent data leakage during preprocessing. We apply `StandardScaler`
-    to numerical features and `OneHotEncoder` to categorical features. Then, we train a Random Forest model, which
-    serves as our robust baseline to capture the fundamental relationships in the data.
+    We construct a machine learning pipeline to prevent data leakage during preprocessing. We apply `StandardScaler` to numerical features. Then, we train a Random Forest model, which serves as our robust baseline to capture the fundamental relationships in the data.
     """)
 
     st.markdown("**Random Forest Training Code:**")
     st.code("""
-# Load clean data and subsample for faster training
-df_rf = df_cleaned.copy()
-df_rf = df_rf.sample(n=20000, random_state=42)
+# Load clean data
+df_rf = df_baseline.copy()
 
-# Define target and separate features
-target_col = 'CCME_Values'
-X = df_rf.drop(columns=[target_col])
-y = df_rf[target_col]
+exclude_cols = ['CCME_Values']
+feature_cols = [col for col in df_rf.columns if col not in exclude_cols]
 
+X_rf = df_rf[feature_cols]
+y_rf = df_rf['CCME_Values']
+
+print(f"Random Forest Input - X shape: {X_rf.shape} | y shape: {y_rf.shape}")
+    """, language="python")
+
+    st.code("""
 # Define categorical and numerical features
-cat_features = ['Country', 'Waterbody Type']
-num_features = [col for col in X.columns if col not in cat_features]
 
-# Build preprocessor and Random Forest pipeline
-preprocessor = ColumnTransformer(transformers=[
-    ('num', StandardScaler(), num_features),
-    ('cat', OneHotEncoder(handle_unknown='ignore'), cat_features)
-])
+# Build preprocessor
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', StandardScaler(), X_rf.columns),
+    ])
 
+# Build Random Forest pipeline
 rf_pipeline = Pipeline(steps=[
     ('preprocessor', preprocessor),
-    ('regressor', RandomForestRegressor(n_estimators=100, random_state=42, n_jobs=-1))
+    ('regressor', RandomForestRegressor(n_estimators=300, max_depth=6, max_features=0.8,
+                                        max_samples=0.8, random_state=42, n_jobs=-1))
 ])
 
-# Train-test split and model training
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-rf_pipeline.fit(X_train, y_train)
+print("Random Forest Pipeline built.")
     """, language="python")
+
+    st.code("""
+X_train_rf, X_test_rf, y_train_rf, y_test_rf = train_test_split(X_rf, y_rf, test_size=0.2, random_state=42)
+
+print(f"Training Random Forest on {X_train_rf.shape[0]} samples...")
+
+# Fit model
+rf_pipeline.fit(X_train_rf, y_train_rf)
+
+print("Random Forest Training complete.")
+    """, language="python")
+
+    st.markdown("""
+    **Model Evaluation and Visual Analysis**
+
+    We evaluate the model's performance using standard regression metrics (R2, RMSE, and MAE).
+
+    Furthermore, we generate visual plots (Actual vs. Predicted curve and Feature Importance) to clearly interpret the results and identify which data indicators are the main drivers of the water quality index.
+    """)
 
     rmse_rf = PRECOMPUTED_RESULTS["rf"]["rmse"]
     mae_rf = PRECOMPUTED_RESULTS["rf"]["mae"]
@@ -903,19 +891,55 @@ rf_pipeline.fit(X_train, y_train)
     """.format(rmse_rf, mae_rf, r2_rf))
 
     st.markdown("**Random Forest Evaluation Visualization:**")
+    st.code("""
+sns.set_theme(style="whitegrid")
+
+fig, axes = plt.subplots(1, 2, figsize=(16, 6))
+
+# Plot 1: Actual vs Predicted
+sample_size = min(2000, len(y_test_rf))
+
+sample_idx = np.random.choice(len(y_test_rf), size=sample_size, replace=False)
+
+y_test_rf_sample = (y_test_rf.iloc[sample_idx] if isinstance(y_test_rf, pd.Series) else y_test_rf[sample_idx])
+
+y_pred_rf_sample = y_pred_rf[sample_idx]
+
+axes[0].scatter(y_test_rf_sample, y_pred_rf_sample, alpha=0.4,
+                color='royalblue', edgecolors='k')
+
+min_val = min(y_test_rf_sample.min(), y_pred_rf_sample.min())
+max_val = max(y_test_rf_sample.max(), y_pred_rf_sample.max())
+
+axes[0].plot([min_val, max_val], [min_val, max_val], 'r--', lw=2)
+
+axes[0].set_title('Random Forest: Actual vs Predicted', fontsize=14, fontweight='bold')
+axes[0].set_xlabel('Actual CCME Values', fontsize=12)
+axes[0].set_ylabel('Predicted CCME Values', fontsize=12)
+
+# Plot 2: Feature Importance
+rf_model = rf_pipeline.named_steps['regressor']
+
+feature_names = X_rf.columns.tolist()
+
+importances = rf_model.feature_importances_
+
+indices = np.argsort(importances)[::-1]
+
+top_n = min(10, len(feature_names))
+top_features = np.array(feature_names)[indices][:top_n]
+top_importances = importances[indices][:top_n]
+
+sns.barplot(x=top_importances, y=top_features, ax=axes[1], palette='viridis')
+
+axes[1].set_title('Random Forest: Top 10 Feature Importances', fontsize=14, fontweight='bold')
+axes[1].set_xlabel('Relative Importance', fontsize=12)
+axes[1].set_ylabel('Features', fontsize=12)
+
+plt.tight_layout()
+plt.show()
+    """, language="python")
     st.image("images/rf_evaluation.png", width="stretch", caption="Random Forest: Actual vs Predicted and Feature Importance")
-
-    st.markdown("""
-    **Random Forest Visualization Analysis:**
-
-    **Left Plot (Actual vs Predicted):** The scatter plot shows how well the model's predictions match the actual
-    CCME values. Points clustering tightly around the red diagonal dashed line (y=x) indicate accurate predictions.
-    The Royal Blue color scheme provides clear visual distinction for this baseline model.
-
-    **Right Plot (Feature Importances):** This horizontal bar chart reveals which features have the greatest influence
-    on predicting water quality index. The viridis color palette helps distinguish between different features,
-    with the most important features shown at the top.
-    """)
 
     st.markdown("---")
     st.markdown('<a id="section3-3"></a>', unsafe_allow_html=True)
@@ -929,16 +953,21 @@ rf_pipeline.fit(X_train, y_train)
 
     st.markdown("**XGBoost Training Code:**")
     st.code("""
-# Use the same clean dataset
+import xgboost as xgb
+
 df_xgb = df_baseline.copy()
 
-exclude_cols = ['Country', 'Waterbody Type', 'Year', 'Month', 'CCME_Values']
+exclude_cols = ['CCME_Values']
 feature_cols = [col for col in df_xgb.columns if col not in exclude_cols]
 
 X_xgb = df_xgb[feature_cols]
 y_xgb = df_xgb['CCME_Values']
 
-# Define preprocessor (numeric features only)
+print(f"XGBoost Input - X shape: {X_xgb.shape} | y shape: {y_xgb.shape}")
+    """, language="python")
+
+    st.code("""
+# Define preprocessor
 preprocessor = ColumnTransformer(
     transformers=[
         ('num', StandardScaler(), X_xgb.columns)
@@ -952,10 +981,28 @@ xgb_pipeline = Pipeline(steps=[
                                    objective='reg:squarederror', n_jobs=-1))
 ])
 
-# Train-test split and model training
-X_train, X_test, y_train, y_test = train_test_split(X_xgb, y_xgb, test_size=0.2, random_state=42)
-xgb_pipeline.fit(X_train, y_train)
+print("XGBoost Pipeline built.")
     """, language="python")
+
+    st.code("""
+# Train-test split
+X_train_xgb, X_test_xgb, y_train_xgb, y_test_xgb = train_test_split(X_xgb, y_xgb, test_size=0.2, random_state=42)
+
+print(f"Training XGBoost on {X_train_xgb.shape[0]} samples...")
+
+# Fit model
+xgb_pipeline.fit(X_train_xgb, y_train_xgb)
+
+print("XGBoost Training complete.")
+    """, language="python")
+
+    st.markdown("""
+    **Model Evaluation and Visual Analysis**
+
+    We evaluate the model's performance using standard regression metrics (R2, RMSE, and MAE).
+
+    Furthermore, we generate visual plots (Actual vs. Predicted curve and Feature Importance) to clearly interpret the results and identify which data indicators are the main drivers of the water quality index.
+    """)
 
     rmse_xgb = PRECOMPUTED_RESULTS["xgb"]["rmse"]
     mae_xgb = PRECOMPUTED_RESULTS["xgb"]["mae"]
@@ -972,148 +1019,158 @@ xgb_pipeline.fit(X_train, y_train)
     """.format(rmse_xgb, mae_xgb, r2_xgb))
 
     st.markdown("**XGBoost Evaluation Visualization:**")
+    st.code("""
+sns.set_theme(style="whitegrid")
+
+fig, axes = plt.subplots(1, 2, figsize=(16, 6))
+
+# Plot 1: Actual vs Predicted
+sample_size = min(2000, len(y_test_xgb))
+
+sample_idx = np.random.choice(len(y_test_xgb), size=sample_size, replace=False)
+
+y_test_xgb_sample = (y_test_xgb.iloc[sample_idx] if isinstance(y_test_xgb, pd.Series) else y_test_xgb[sample_idx])
+
+y_pred_xgb_sample = y_pred_xgb[sample_idx]
+
+axes[0].scatter(y_test_xgb_sample, y_pred_xgb_sample, alpha=0.4,
+                color='darkorange', edgecolors='black')
+
+min_val = min(y_test_xgb_sample.min(), y_pred_xgb_sample.min())
+max_val = max(y_test_xgb_sample.max(), y_pred_xgb_sample.max())
+
+axes[0].plot([min_val, max_val], [min_val, max_val], 'r--', lw=2)
+
+axes[0].set_title('XGBoost: Actual vs Predicted', fontsize=14, fontweight='bold')
+axes[0].set_xlabel('Actual CCME Values', fontsize=12)
+axes[0].set_ylabel('Predicted CCME Values', fontsize=12)
+
+# Plot 2: Feature Importance
+xgb_model = xgb_pipeline.named_steps['regressor']
+
+feature_names = X_xgb.columns.tolist()
+
+importances = xgb_model.feature_importances_
+
+indices = np.argsort(importances)[::-1]
+
+top_n = min(10, len(feature_names))
+top_features = np.array(feature_names)[indices][:top_n]
+top_importances = importances[indices][:top_n]
+
+sns.barplot(x=top_importances, y=top_features, ax=axes[1], palette='magma')
+
+axes[1].set_title('XGBoost: Top 10 Feature Importances', fontsize=14, fontweight='bold')
+axes[1].set_xlabel('Relative Importance', fontsize=12)
+axes[1].set_ylabel('Features', fontsize=12)
+
+plt.tight_layout()
+plt.show()
+    """, language="python")
     st.image("images/xgb_evaluation.png", width="stretch", caption="XGBoost: Actual vs Predicted and Feature Importance")
-
-    st.markdown("""
-    **XGBoost Visualization Analysis:**
-
-    **Left Plot (Actual vs Predicted):** The Dark Orange scatter points show XGBoost's prediction accuracy compared
-    to actual values. The red dashed reference line represents perfect prediction. Tight clustering near this line
-    indicates the model captures the underlying patterns effectively.
-
-    **Right Plot (Feature Importances):** XGBoost identifies feature importance differently than Random Forest.
-    The magma color palette provides visual distinction. Key pollution indicators typically rank high in importance,
-    demonstrating their significant influence on water quality predictions.
-    """)
 
     st.markdown("---")
     st.markdown('<a id="section3-4"></a>', unsafe_allow_html=True)
-    st.subheader("3.4 Deep Learning (1D-CNN, Hybrid CNN & Hybrid CNN-XGBoost)")
+    st.subheader("3.4 Hybrid CNN-XGBoost")
 
     st.markdown("""
-    Deep Learning models for water quality prediction include two main approaches:
-    - **1D-CNN**: Captures temporal patterns in time-series data
-    - **Hybrid CNN**: Uses convolutional layers for feature extraction with direct regression output
-    - **Hybrid CNN-XGBoost**: Combines CNN feature extraction with XGBoost regression
+    To further improve predictive performance, we implement a hybrid model that combines a Convolutional Neural Network (CNN) for feature extraction with XGBoost for regression. The CNN learns high-level feature representations from the raw input data, which are then fed into XGBoost to make the final prediction.
+    
+    ### 🧪 **Hybrid CNN-XGBoost Model**
+    1. **CNN:** Trained to capture complex patterns and feature interactions from the input data.
+    2. **Feature Extraction:** Dense feature representations are extracted from the CNN's layer.
+    3. **XGBoost:** An XGBoost regressor is trained using these high-level extracted features to generate the final prediction.
     """)
 
-    st.markdown("### 3.4.1 Time-Series Data Pipeline (1D-CNN)")
-
-    st.markdown("""
-    To capture the temporal dynamics of river water quality, we reconstruct the data into 3D tensors required by 1D-CNN architectures:
-    - **Strict Sorting**: Data is sorted spatially (Country -> Waterbody Type -> Area) and chronologically (Date)
-    - **Sliding Window**: Groups continuous historical steps into contiguous time-series sequences
-    - **Chronological Split**: Train-test split without shuffling to prevent future data leakage
-    """)
-
-    st.markdown("**Time-Series Data Pipeline Code:**")
+    st.markdown("**Hybrid CNN Model Definition:**")
     st.code("""
-# Sort spatially and chronologically
-df_ts = df_ts.sort_values(by=['Country', 'Waterbody Type', 'Area', 'Date']).reset_index(drop=True)
+# Define Hybrid CNN Architecture
 
-# Define features (exclude text labels and target)
-exclude_cols = ['Country', 'Waterbody Type', 'Area', 'Date', 'CCME_Values']
-feature_cols = [col for col in df_ts.columns if col not in exclude_cols]
-
-# Create sliding windows for time-series (window_size=3)
-window_size = 3
-X_ts, y_ts = [], []
-for i in range(len(df_ts) - window_size + 1):
-    window = df_ts[feature_cols].iloc[i:i+window_size].values
-    X_ts.append(window)
-    y_ts.append(df_ts['CCME_Values'].iloc[i + window_size - 1])
-
-X_ts = np.array(X_ts)
-y_ts = np.array(y_ts)
-
-# Train-test split (80/20, no shuffle for time-series)
-train_size = int(0.8 * len(X_ts))
-X_train_ts = X_ts[:train_size]
-X_test_ts = X_ts[train_size:]
-y_train_ts = y_ts[:train_size]
-y_test_ts = y_ts[train_size:]
-
-print(f"CNN Input Shape (X): {X_ts.shape} -> (Samples, TimeSteps, Features)")
-print(f"Target Shape (y): {y_ts.shape}")
-print(f"TS Train size: {len(X_train_ts)} | TS Test size: {len(X_test_ts)}")
-    """, language="python")
-
-    st.markdown("### 3.4.2 1D-CNN Architecture")
-
-    st.markdown("""
-    The 1D-CNN architecture processes sequential water quality data with temporal dependencies:
-    - **Conv1d Layer**: Extracts temporal features from sliding windows
-    - **Global Feature Extraction**: Reduces sequence to fixed-size feature vector
-    - **Regression Output**: Predicts next timestep's water quality index
-    """)
-
-    st.markdown("**1D-CNN Model Definition:**")
-    st.code("""
 class WaterQualityCNN(nn.Module):
-    def __init__(self, num_features):
-        super(WaterQualityCNN, self).__init__()
-        # Convolutional layer to extract temporal trends
-        self.conv1 = nn.Conv1d(in_channels=num_features, out_channels=32, kernel_size=2)
-        self.relu = nn.ReLU()
-        self.flatten = nn.Flatten()
+  def __init__(self, num_features):
+    super(WaterQualityCNN, self).__init__()
+    # Convolutional layer to extract features
+    self.conv1 = nn.Conv1d(in_channels=1, out_channels=32, kernel_size=3, padding=1)
+    self.bn1 = nn.BatchNorm1d(32)
 
-        # Feature extraction layer (Extracts 32D high-level features)
-        self.fc_features = nn.Linear(32 * 2, 32)
-        # Output layer for CNN pre-training
-        self.fc_output = nn.Linear(32, 1)
+    self.conv2 = nn.Conv1d(in_channels=32, out_channels=64, kernel_size=3, padding=1)
+    self.bn2 = nn.BatchNorm1d(64)
+    self.relu = nn.ReLU()
 
-    def forward(self, x):
-        x = self.conv1(x)
-        x = self.relu(x)
-        x = self.flatten(x)
-        features = self.relu(self.fc_features(x))
-        output = self.fc_output(features)
-        return output, features
+    self.dropout = nn.Dropout(0.3)
+
+    # Reduces feature dimension
+    self.pool = nn.AdaptiveAvgPool1d(1)
+    self.flatten = nn.Flatten()
+
+    # Feature extraction layer (Extracts 32D high-level features)
+    self.fc_features = nn.Linear(64, 32)
+
+    # Regression output layer for CNN pre-training
+    self.fc_output = nn.Linear(32, 1)
+
+  def forward(self, x):
+    x = self.conv1(x)
+    x = self.bn1(x)
+    x = self.relu(x)
+
+    x = self.conv2(x)
+    x = self.bn2(x)
+    x = self.relu(x)
+
+    # Global pooling
+    x = self.pool(x)
+
+    # Flatten
+    x = self.flatten(x)
+
+    # Feature extraction
+    features = self.dropout(self.relu(self.fc_features(x)))
+
+    # Output
+    output = self.fc_output(features)
+
+    return output, features
     """, language="python")
 
-    st.markdown("### 3.4.3 Hybrid CNN Data Preparation")
-
-    st.markdown("**Deep Learning Data Preparation Code:**")
+    st.markdown("**Hybrid CNN Data Preparation:**")
     st.code("""
-# --- Hybrid CNN Data Preparation ---
-# 1. Load and copy the baseline dataset
 df_hybrid = df_baseline.copy()
 
-# 2. Define features (exclude text labels and target)
-exclude_cols = ['Country', 'Waterbody Type', 'Year', 'Month', 'CCME_Values']
+exclude_cols = ['CCME_Values']
 feature_cols = [col for col in df_hybrid.columns if col not in exclude_cols]
 
-# 3. Separate features and target
 X_hybrid = df_hybrid[feature_cols]
 y_hybrid = df_hybrid['CCME_Values']
 
-# 4. Train-test split
-X_train_hybrid, X_test_hybrid, y_train_hybrid, y_test_hybrid = train_test_split(
-    X_hybrid, y_hybrid, test_size=0.2, random_state=42
-)
+# Train-test split
+X_train_hybrid, X_test_hybrid, y_train_hybrid, y_test_hybrid = train_test_split(X_hybrid, y_hybrid, test_size=0.2, random_state=42)
+print(f"Train size: {X_train_hybrid.shape[0]} | Test size: {X_test_hybrid.shape[0]}")
 
-# 5. Standardize features using StandardScaler
 scaler = StandardScaler()
+
 X_train_hybrid_scaled = scaler.fit_transform(X_train_hybrid)
-X_test_hybrid_scaled = scaler.transform(X_test_hybrid)
+X_test_hybrid_scaled = scaler.fit_transform(X_test_hybrid)
 
-# 6. Create validation set
-X_train_final, X_val, y_train_final, y_val = train_test_split(
-    X_train_hybrid_scaled, y_train_hybrid, test_size=0.1, random_state=42
-)
+X_train_final, X_val, y_train_final, y_val = train_test_split(X_train_hybrid_scaled, y_train_hybrid, test_size=0.1, random_state=42)
 
-# --- Convert to PyTorch Tensors ---
-# Input format for PyTorch: (Samples, Channels, TimeSteps)
+# Data Preparation
+
+# PyTorch CNN requires (Samples, Features) input format
+
+# --- Training tensors ---
 X_train_tensor = torch.tensor(X_train_final, dtype=torch.float32).unsqueeze(1)
-X_val_tensor = torch.tensor(X_val, dtype=torch.float32).unsqueeze(1)
-X_test_tensor = torch.tensor(X_test_hybrid_scaled, dtype=torch.float32).unsqueeze(1)
-
-# Convert targets to tensors
 y_train_tensor = torch.tensor(y_train_final.values, dtype=torch.float32).view(-1, 1)
+
+# --- Validation tensors ---
+X_val_tensor = torch.tensor(X_val, dtype=torch.float32).unsqueeze(1)
 y_val_tensor = torch.tensor(y_val.values, dtype=torch.float32).view(-1, 1)
+
+# --- Test tensors ---
+X_test_tensor = torch.tensor(X_test_hybrid_scaled, dtype=torch.float32).unsqueeze(1)
 y_test_tensor = torch.tensor(y_test_hybrid.values, dtype=torch.float32).view(-1, 1)
 
-# Create DataLoaders for batch training
+# Create DataLoader for batch training to optimize memory
 train_dataset = TensorDataset(X_train_tensor, y_train_tensor)
 train_loader = DataLoader(train_dataset, batch_size=256, shuffle=True)
 
@@ -1124,93 +1181,39 @@ test_dataset = TensorDataset(X_test_tensor, y_test_tensor)
 test_loader = DataLoader(test_dataset, batch_size=256, shuffle=True)
     """, language="python")
 
-    st.markdown("""
-    **Data Preparation Rationale:**
-    - **Feature Selection:** Exclude categorical features (Country, Waterbody Type) and temporal features (Year, Month)
-    - **Standardization:** Use StandardScaler to normalize features to mean=0 and std=1 (critical for neural networks)
-    - **Tensor Shape:** Convert to (Samples, Channels, Features) = (n, 1, 8) format for 1D-CNN
-    - **Train-Validation-Test Split:** 72% training, 8% validation, 20% test
-    """)
-
-    st.markdown("### 3.4.4 Hybrid CNN Architecture")
-
-    st.markdown("**Hybrid CNN Model Definition (Same as Notebook):**")
-    st.code("""
-class WaterQualityCNN(nn.Module):
-    def __init__(self, num_features):
-        super(WaterQualityCNN, self).__init__()
-        # Convolutional layer to extract features
-        self.conv1 = nn.Conv1d(in_channels=1, out_channels=32, kernel_size=3, padding=1)
-        self.bn1 = nn.BatchNorm1d(32)
-
-        self.conv2 = nn.Conv1d(in_channels=32, out_channels=64, kernel_size=3, padding=1)
-        self.bn2 = nn.BatchNorm1d(64)
-        self.relu = nn.ReLU()
-
-        self.dropout = nn.Dropout(0.3)
-
-        # Reduces feature dimension
-        self.pool = nn.AdaptiveAvgPool1d(1)
-        self.flatten = nn.Flatten()
-
-        # Feature extraction layer (Extracts 32D high-level features)
-        self.fc_features = nn.Linear(64, 32)
-
-        # Regression output layer
-        self.fc_output = nn.Linear(32, 1)
-
-    def forward(self, x):
-        x = self.conv1(x)
-        x = self.bn1(x)
-        x = self.relu(x)
-
-        x = self.conv2(x)
-        x = self.bn2(x)
-        x = self.relu(x)
-
-        # Global pooling
-        x = self.pool(x)
-
-        # Flatten
-        x = self.flatten(x)
-
-        # Feature extraction
-        features = self.dropout(self.relu(self.fc_features(x)))
-
-        # Output
-        output = self.fc_output(features)
-
-        return output, features
-    """, language="python")
-
-    st.markdown("""
-    **Hybrid CNN Architecture Components:**
-    
-    | Layer | Type | Details |
-    |-------|------|---------|
-    | Conv1 | 1D Convolution | 32 filters, kernel_size=3, padding=1 |
-    | BN1 | Batch Normalization | Stabilize training |
-    | Conv2 | 1D Convolution | 64 filters, kernel_size=3, padding=1 |
-    | BN2 | Batch Normalization | Further stabilize |
-    | Pool | AdaptiveAvgPool1d | Reduce to single value |
-    | FC1 | Fully Connected | 64 → 32 features |
-    | Dropout | 30% | Prevent overfitting |
-    | FC2 | Output | 32 → 1 (regression) |
-    """)
-
-    st.markdown("### 3.4.5 Hybrid CNN Training")
-
-    st.markdown("**Hybrid CNN Training Code:**")
+    st.markdown("**Hybrid CNN Training:**")
     st.code("""
 # Initialize hybrid model
-num_features = X_train_tensor.shape[2]  # 8 features
-hybrid_model = WaterQualityCNN(num_features)
+num_features = X_train_tensor.shape[2]
 
-# Training configuration
+hybrid_cnn_xgb_model = WaterQualityCNN(num_features)
+
+print(hybrid_cnn_xgb_model)
+    """, language="python")
+    st.code("""
+WaterQualityCNN(
+    (conv1): Conv1d(1, 32, kernel_size=(3,), stride=(1,), padding=(1,))
+    (bn1): BatchNorm1d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (conv2): Conv1d(32, 64, kernel_size=(3,), stride=(1,), padding=(1,))
+    (bn2): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (relu): ReLU()
+    (dropout): Dropout(p=0.3, inplace=False)
+    (pool): AdaptiveAvgPool1d(output_size=1)
+    (flatten): Flatten(start_dim=1, end_dim=-1)
+    (fc_features): Linear(in_features=64, out_features=32, bias=True)
+    (fc_output): Linear(in_features=32, out_features=1, bias=True)
+)
+    """, language="python")
+
+    st.code("""
+# --- CNN Training ---
+
 criterion = nn.MSELoss()
-optimizer = optim.Adam(hybrid_model.parameters(), lr=0.001)
+
+optimizer = optim.Adam(hybrid_cnn_xgb_model.parameters(), lr=0.001)
+
 epochs = 50
-patience = 5  # Early stopping patience
+patience = 5
 best_val_loss = float('inf')
 counter = 0
 
@@ -1218,157 +1221,208 @@ print("Training CNN Model...")
 
 for epoch in range(epochs):
     # --- TRAINING ---
-    hybrid_model.train()
+    hybrid_cnn_xgb_model.train()
     train_loss = 0.0
-    
-    for batch_X, batch_y in train_loader:
+
+    train_progress = tqdm(train_loader, desc=f"Epoch {epoch+1}/{epochs} [Training]", leave=False)
+
+    for batch_X, batch_y in train_progress:
         optimizer.zero_grad()
-        outputs, _ = hybrid_model(batch_X)
+
+        outputs, _ = hybrid_cnn_xgb_model(batch_X)
+
         loss = criterion(outputs, batch_y)
         loss.backward()
         optimizer.step()
         train_loss += loss.item()
-    
+
+        train_progress.set_postfix(loss=loss.item())
+
     avg_train_loss = train_loss / len(train_loader)
-    
+
     # --- VALIDATION ---
-    hybrid_model.eval()
+    hybrid_cnn_xgb_model.eval()
     val_loss = 0.0
-    
+
+    val_progress = tqdm(val_loader, desc=f"Epoch {epoch+1}/{epochs} [Validation]", leave=False)
+
     with torch.no_grad():
-        for val_X, val_y in val_loader:
-            val_outputs, _ = hybrid_model(val_X)
+
+        for val_X, val_y in val_progress:
+
+            val_outputs, _ = hybrid_cnn_xgb_model(val_X)
+
             loss = criterion(val_outputs, val_y)
             val_loss += loss.item()
-    
+
+            val_progress.set_postfix(val_loss=loss.item())
+
     avg_val_loss = val_loss / len(val_loader)
-    
+
     # Epoch summary
-    print(f"Epoch [{epoch+1}/{epochs}] | Train Loss: {avg_train_loss:.4f} | Val Loss: {avg_val_loss:.4f}")
-    
+    print(
+        f"Epoch [{epoch+1}/{epochs}] | "
+        f"Train Loss: {avg_train_loss:.4f} | "
+        f"Val Loss: {avg_val_loss:.4f}"
+    )
+
     # Early Stopping
     if avg_val_loss < best_val_loss:
         best_val_loss = avg_val_loss
+
         counter = 0
-        torch.save(hybrid_model.state_dict(), "best_hybrid_cnn.pth")
+
+        torch.save(hybrid_cnn_xgb_model.state_dict(), "best_hybrid_cnn_xgb.pth")
+
         print("Validation loss improved. Model saved.")
+
     else:
+
         counter += 1
-        print(f"Early Stopping Counter: {counter}/{patience}")
+        print(f"Early Stopping Counter: " f"{counter}/{patience}")
+
         if counter >= patience:
             print("Early stopping triggered.")
             break
     """, language="python")
-
-    # Load Hybrid CNN model and display evaluation results
-    rmse_cnn = PRECOMPUTED_RESULTS["hybrid_cnn"]["rmse"]
-    mae_cnn = PRECOMPUTED_RESULTS["hybrid_cnn"]["mae"]
-    r2_cnn = PRECOMPUTED_RESULTS["hybrid_cnn"]["r2"]
-
-    cnn_model = None
-    if os.path.exists(CNN_MODEL_PATH):
-        try:
-            cnn_model = load_cnn_model()
-        except Exception as e:
-            st.warning(f"⚠️ CNN model loading error: {str(e)}")
-    else:
-        st.warning(f"⚠️ CNN model file not found at: {CNN_MODEL_PATH}")
-
-    st.markdown("### 3.4.6 Hybrid CNN-XGBoost Model")
-
-    st.markdown("""
-    The Hybrid CNN-XGBoost model combines CNN feature extraction with XGBoost regression:
-    1. **CNN Feature Extraction:** Use trained Hybrid CNN to extract 32D high-level features
-    2. **XGBoost Prediction:** Train XGBoost on the extracted features for final prediction
-    """)
-
-    st.markdown("**Hybrid CNN-XGBoost Code:**")
+    st.code("""
+Training CNN Model...
+Epoch [1/50] | Train Loss: 451.7673 | Val Loss: 27.2475
+Validation loss improved. Model saved.
+Epoch [2/50] | Train Loss: 209.7123 | Val Loss: 29.3650
+Early Stopping Counter: 1/5
+Epoch [3/50] | Train Loss: 187.4688 | Val Loss: 21.1123
+Validation loss improved. Model saved.
+Epoch [4/50] | Train Loss: 171.6581 | Val Loss: 33.2831
+Early Stopping Counter: 1/5
+Epoch [5/50] | Train Loss: 156.3815 | Val Loss: 15.6523
+Validation loss improved. Model saved.
+Epoch [6/50] | Train Loss: 138.4448 | Val Loss: 20.7838
+Early Stopping Counter: 1/5
+Epoch [7/50] | Train Loss: 121.6321 | Val Loss: 12.3712
+Validation loss improved. Model saved.
+Epoch [8/50] | Train Loss: 108.1875 | Val Loss: 30.8293
+Early Stopping Counter: 1/5
+Epoch [9/50] | Train Loss: 97.7415 | Val Loss: 20.6736
+Early Stopping Counter: 2/5
+Epoch [10/50] | Train Loss: 88.3038 | Val Loss: 9.1475
+Validation loss improved. Model saved.
+Epoch [11/50] | Train Loss: 79.4780 | Val Loss: 11.3028
+Early Stopping Counter: 1/5
+Epoch [12/50] | Train Loss: 70.6575 | Val Loss: 11.5363
+Early Stopping Counter: 2/5
+Epoch [13/50] | Train Loss: 62.9322 | Val Loss: 24.0086
+Early Stopping Counter: 3/5
+Epoch [14/50] | Train Loss: 55.9914 | Val Loss: 11.5606
+Early Stopping Counter: 4/5
+Epoch [15/50] | Train Loss: 49.8971 | Val Loss: 9.7508
+Early Stopping Counter: 5/5
+Early stopping triggered.
+Best CNN model loaded.
+    """, language="python")
+    st.markdown("**Hybrid CNN-XGBoost Integration:**")
     st.code("""
 # Step 1: Load trained Hybrid CNN model
 num_features = 8
-hybrid_model = WaterQualityCNN(num_features)
-hybrid_model.load_state_dict(torch.load("best_hybrid_cnn.pth"))
-hybrid_model.eval()
+hybrid_cnn_xgb_model = WaterQualityCNN(num_features)
+hybrid_cnn_xgb_model.load_state_dict(torch.load("best_hybrid_cnn.pth"))
+hybrid_cnn_xgb_model.eval()
 
 # Step 2: Extract features from CNN's penultimate layer
 with torch.no_grad():
-    _, train_cnn_features = hybrid_model(X_train_tensor)  # Shape: (n_samples, 32)
-    _, test_cnn_features = hybrid_model(X_test_tensor)
+    _, train_cnn_features = hybrid_cnn_xgb_model(X_train_tensor)
+    _, test_cnn_features = hybrid_cnn_xgb_model(X_test_tensor)
     
-# Convert to numpy arrays
-train_features_np = train_cnn_features.numpy()
-test_features_np = test_cnn_features.numpy()
+# Convert tensors to numpy arrays
+train_hybrid_cnn_xgb_features_np = train_cnn_features.numpy()
+test_hybrid_cnn_xgb_features_np = test_cnn_features.numpy()
 
-# Step 3: Train XGBoost on extracted features
-hybrid_xgb = xgb.XGBRegressor(
-    n_estimators=300, 
-    max_depth=6, 
-    learning_rate=0.1,
-    subsample=0.8, 
-    colsample_bytree=0.8, 
-    random_state=42,
-    objective='reg:squarederror', 
-    n_jobs=-1
-)
+# Train Hybrid CNN-XGBoost Regressor
+print("Training Hybrid CNN-XGBoost: ")
 
-hybrid_xgb.fit(train_features_np, y_train_final)
+hybrid_cnn_xgb = xgb.XGBRegressor(n_estimators=300, max_depth=6, learning_rate=0.1,
+                                  subsample=0.8, colsample_bytree=0.8, random_state=42,
+                                  objective='reg:squarederror', n_jobs=-1)
 
-# Step 4: Predict and evaluate
-y_pred_hybrid = hybrid_xgb.predict(test_features_np)
+hybrid_cnn_xgb.fit(train_hybrid_cnn_xgb_features_np, y_train_final)
+    """, language="python")
+
+    st.markdown("""
+    **Model Evaluation and Visual Analysis**
+
+    We evaluate the model's performance using standard regression metrics (R2, RMSE, and MAE).
+
+    Furthermore, we generate visual plots (Actual vs. Predicted curve and Residual Distribution) to clearly interpret the results.
+    """)
+
+    rmse_cnn = PRECOMPUTED_RESULTS["hybrid_xgb"]["rmse"]
+    mae_cnn = PRECOMPUTED_RESULTS["hybrid_xgb"]["mae"]
+    r2_cnn = PRECOMPUTED_RESULTS["hybrid_xgb"]["r2"]
+    st.code("""
+# Predict on test set
+y_pred_hybrid = hybrid_cnn_xgb.predict(test_hybrid_cnn_xgb_features_np)
+
 rmse_hybrid = np.sqrt(mean_squared_error(y_test_hybrid, y_pred_hybrid))
 mae_hybrid = mean_absolute_error(y_test_hybrid, y_pred_hybrid)
 r2_hybrid = r2_score(y_test_hybrid, y_pred_hybrid)
 
-print(f"Hybrid CNN-XGBoost Results:")
+print("Hybrid CNN-XGBoost (Main) Evaluation Results: ")
 print(f"RMSE: {rmse_hybrid:.4f}")
-print(f"MAE: {mae_hybrid:.4f}")
+print(f"MAE:  {mae_hybrid:.4f}")
 print(f"R2 Score: {r2_hybrid:.4f}")
-    """, language="python")
-
+        """, language="python")
     st.markdown("""
-    **Hybrid CNN-XGBoost Workflow:**
-
-    ```
-    Input Data → CNN Feature Extraction (32D) → XGBoost Regressor → Prediction
-    ```
-
     **Hybrid CNN-XGBoost Evaluation Results:**
 
     | Metric | Value |
     |--------|-------|
-    | RMSE | 5.3968 |
-    | MAE | 3.1332 |
-    | R2 Score | 0.5559 |
-    """)
-
-    st.markdown("""
-    **Hybrid CNN-XGBoost Analysis:**
-
-    The Hybrid CNN-XGBoost combines deep learning feature extraction with gradient boosting.
-    While its performance is moderate on this dataset, it shows potential for complex scenarios.
-
-    **Advantages:**
-    - Leverages CNN's automated feature learning
-    - Combines with XGBoost's gradient boosting power
-    - Can capture more complex patterns in larger datasets
-    """)
+    | RMSE | {:.4f} |
+    | MAE | {:.4f} |
+    | R2 Score | {:.4f} |
+    """.format(rmse_cnn, mae_cnn, r2_cnn))
 
     st.markdown("**Hybrid CNN-XGBoost Evaluation Visualization:**")
+    st.code("""
+sns.set_theme(style="whitegrid")
+fig, axes = plt.subplots(1, 2, figsize=(16, 6))
+
+# Plot 1: Actual vs Predicted
+sample_size = min(2000, len(y_test_hybrid))
+
+sample_idx = np.random.choice(len(y_test_hybrid), size=sample_size, replace=False)
+
+y_test_hybrid_sample = (y_test_hybrid.iloc[sample_idx] if isinstance(y_test_hybrid, pd.Series) else y_test_hybrid[sample_idx])
+
+y_pred_hybrid_sample = y_pred_hybrid[sample_idx]
+
+axes[0].scatter(y_test_hybrid_sample, y_pred_hybrid_sample, alpha=0.4,
+                color='crimson', edgecolors='k')
+
+min_val = min(y_test_xgb_sample.min(), y_pred_hybrid_sample.min())
+max_val = max(y_test_xgb_sample.max(), y_pred_hybrid_sample.max())
+
+axes[0].plot([min_val, max_val], [min_val, max_val], 'r--', lw=2)
+
+axes[0].set_title('CNN-XGBoost: Actual vs Predicted', fontsize=14, fontweight='bold')
+axes[0].set_xlabel('Actual CCME Values', fontsize=12)
+axes[0].set_ylabel('Predicted CCME Values', fontsize=12)
+
+# Plot 2 Prediction Error (Residuals)
+# Calculate residuals (Actual - Predicted)
+residuals = y_test_hybrid_sample - y_pred_hybrid_sample
+sns.histplot(residuals, kde=True, ax=axes[1], color='crimson', bins=40)
+
+axes[1].set_title('CNN-XGBoost: Prediction Error (Residuals)', fontsize=14, fontweight='bold')
+axes[1].set_xlabel('Error (Actual - Predicted)', fontsize=12)
+axes[1].set_ylabel('Frequency', fontsize=12)
+
+# Add perfect reference line (x=0)
+axes[1].axvline(0, color='k', linestyle='--', lw=2)
+
+plt.tight_layout()
+plt.show()
+    """, language="python")
     st.image("images/hybrid_evaluation.png", width="stretch", caption="Hybrid CNN-XGBoost: Actual vs Predicted and Residual Distribution")
-
-    st.markdown("""
-    **Hybrid CNN-XGBoost Visualization Analysis:**
-
-    **Left Plot (Actual vs. Predicted):** The crimson scatter points show the Hybrid model's predictions
-    compared to actual values. The red dashed reference line represents perfect prediction. Points that
-    deviate from the line indicate prediction errors. The spread of points reflects the model's ability
-    to capture complex non-linear relationships in the data.
-
-    **Right Plot (Residual Distribution):** This histogram shows the distribution of prediction errors
-    (Actual - Predicted). A normal distribution centered around zero indicates unbiased predictions.
-    The KDE curve helps visualize the error distribution shape, and deviations from normality may
-    indicate specific areas where the model struggles.
-    """)
 
     st.markdown("---")
     st.markdown('<a id="section3-5"></a>', unsafe_allow_html=True)
@@ -1381,6 +1435,65 @@ print(f"R2 Score: {r2_hybrid:.4f}")
     """)
 
     st.markdown("""
+    ## ⭐️ **Interpretation of Results**
+
+    **1. Performance Overview**
+
+    In this section, the baseline models (Random Forest and XGBoost) are compared with the proposed Hybrid CNN-XGBoost model. Model performance are evaluated using standard regression metrics including R2, RMSE, and MAE.
+
+    The results show that all models achieved strong predictive performance, with XGBoost producing the highest overall accuracy, followed by Random Forest and the Hybrid CNN-XGBoost model.
+
+    **2. Key Insights & Discussion**
+
+    * **XGBoost Performance**: The XGBoost model achieved the best predictive performance with an R2 = 0.9986, indicating an almost perfect fit to the dataset. Its low RMSE and MAE values suggest that XGBoost was highly effective in capturing complex non-linear relationships within the structured environmental and water quality data.
+
+    * **Random Forest Performance**: The Random Forest model also demonstrated strong predictive capability with an R2 = 0.9917. Although slightly lower than XGBoost, the model remained highly accurate and robust for predicting CCME water quality values.
+
+    * **Hybrid CNN-XGBoost Performance**: The proposed Hybrid CNN-XGBoost model achieved strong overall performance with an R2 = 0.9644, demonstrating that the model was capable of learning meaningful feature representations from the dataset before performing regression using XGBoost. However, its performance was slightly lower compared to the standalone XGBoost and Random Forest models.
+
+    * **Discussion**: The baseline machine learning models were trained directly on structured tabular data, which is highly suitable for tree-based algorithms such as Random Forest and XGBoost. In contrast, the CNN component in the hybrid architecture introduces an additional feature extraction stage that may not provide substantial advantages for non-sequential cross-sectional data. Since the dataset does not contain strong temporal or spatial patterns, the deep learning feature extraction process may introduce additional complexity without significantly improving predictive accuracy.
+
+    * Overall, the findings suggest that traditional ensemble learning models, particularly XGBoost, are highly effective for structured environmental and water quality datasets. While the Hybrid CNN-XGBoost model remains capable of achieving strong predictive performance, the results indicate that more complex hybrid deep learning architectures do not necessarily outperform optimized gradient boosting models for cross-sectional tabular data.
+    """)
+    st.markdown("---")
+
+    st.code("""
+# Aggregate evaluation metrics dynamically from previous outputs
+comparison_data = {
+    'Model': ['Random Forest', 'XGBoost', 'Hybrid CNN-XGBoost'],
+    'RMSE': [rmse_rf, rmse_xgb, rmse_hybrid],
+    'MAE': [mae_rf, mae_xgb, mae_hybrid],
+    'R2 Score': [r2_rf, r2_xgb, r2_hybrid]
+}
+
+df_compare = pd.DataFrame(comparison_data)
+
+print("--- Final Model Comparison Summary ---")
+display(df_compare)
+
+# Plot comparison bar charts
+sns.set_theme(style="whitegrid")
+fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+
+# Define color palette: blue for baselines, red to highlight the hybrid model
+colors = ['royalblue', 'cornflowerblue', 'crimson']
+
+# Plot RMSE
+sns.barplot(x='Model', y='RMSE', data=df_compare, ax=axes[0], palette=colors, hue='Model', legend=False)
+axes[0].set_title('RMSE Comparison (Lower is Better)', fontweight='bold')
+
+# Plot MAE
+sns.barplot(x='Model', y='MAE', data=df_compare, ax=axes[1], palette=colors, hue='Model', legend=False)
+axes[1].set_title('MAE Comparison (Lower is Better)', fontweight='bold')
+
+# Plot R2 Score
+sns.barplot(x='Model', y='R2 Score', data=df_compare, ax=axes[2], palette=colors, hue='Model', legend=False)
+axes[2].set_title('R² Score Comparison (Higher is Better)', fontweight='bold')
+
+plt.tight_layout()
+plt.show()
+    """, language="python")
+    st.markdown("""
     **Model Performance Comparison:**
 
     | Model | RMSE | MAE | R² Score |
@@ -1388,32 +1501,12 @@ print(f"R2 Score: {r2_hybrid:.4f}")
     | Random Forest | {:.4f} | {:.4f} | {:.4f} |
     | XGBoost | {:.4f} | {:.4f} | {:.4f} |
     | Hybrid CNN-XGBoost | {:.4f} | {:.4f} | {:.4f} |
-    """.format(rmse_rf, mae_rf, r2_rf, rmse_xgb, mae_xgb, r2_xgb, 2.5122, 1.5293, 0.9644))
+    """.format(rmse_rf, mae_rf, r2_rf, rmse_xgb, mae_xgb, r2_xgb, rmse_cnn, mae_cnn, r2_cnn))
 
     st.markdown("**Final Model Comparison Visualization:**")
     st.image("images/model_comparison.png", width="stretch", caption="Model Comparison: RMSE, MAE, and R² Score Comparison")
 
-    st.markdown("""
-    ## ⭐️ **Interpretation of Results**
-
-**1. Performance Overview**
-
-In this section, the baseline models (Random Forest and XGBoost) are compared with the proposed Hybrid CNN-XGBoost model. Model performance are evaluated using standard regression metrics including R2, RMSE, and MAE.
-
-The results show that all models achieved strong predictive performance, with XGBoost producing the highest overall accuracy, followed by Random Forest and the Hybrid CNN-XGBoost model.
-
-**2. Key Insights & Discussion**
-
-* **XGBoost Performance**: The XGBoost model achieved the best predictive performance with an R2 = 0.9986, indicating an almost perfect fit to the dataset. Its low RMSE and MAE values suggest that XGBoost was highly effective in capturing complex non-linear relationships within the structured environmental and water quality data.
-
-* **Random Forest Performance**: The Random Forest model also demonstrated strong predictive capability with an R2 = 0.9917. Although slightly lower than XGBoost, the model remained highly accurate and robust for predicting CCME water quality values.
-
-* **Hybrid CNN-XGBoost Performance**: The proposed Hybrid CNN-XGBoost model achieved strong overall performance with an R2 = 0.9644, demonstrating that the model was capable of learning meaningful feature representations from the dataset before performing regression using XGBoost. However, its performance was slightly lower compared to the standalone XGBoost and Random Forest models.
-
-* **Discussion**: The baseline machine learning models were trained directly on structured tabular data, which is highly suitable for tree-based algorithms such as Random Forest and XGBoost. In contrast, the CNN component in the hybrid architecture introduces an additional feature extraction stage that may not provide substantial advantages for non-sequential cross-sectional data. Since the dataset does not contain strong temporal or spatial patterns, the deep learning feature extraction process may introduce additional complexity without significantly improving predictive accuracy.
-
-* Overall, the findings suggest that traditional ensemble learning models, particularly XGBoost, are highly effective for structured environmental and water quality datasets. While the Hybrid CNN-XGBoost model remains capable of achieving strong predictive performance, the results indicate that more complex hybrid deep learning architectures do not necessarily outperform optimized gradient boosting models for cross-sectional tabular data.
-    """)
+    
 
     # ============================================
     # 4. APPLICATION DEVELOPMENT
