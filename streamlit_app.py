@@ -1433,7 +1433,7 @@ The results show that all models achieved strong predictive performance, with XG
     """)
 
     model_choice = st.sidebar.radio("Select Model",
-                                   ["🌲 Random Forest", "🚀 XGBoost", "🔄 Hybrid CNN-XGBoost"],
+                                   ["🌲 Random Forest", "🚀 XGBoost", "🧠 Hybrid CNN-XGBoost"],
                                    help="Choose between Random Forest, XGBoost, or Hybrid CNN-XGBoost model")
 
     df = load_raw_data()
