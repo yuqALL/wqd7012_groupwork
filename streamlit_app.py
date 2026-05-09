@@ -33,13 +33,13 @@ MODEL_URL_CNN = "https://raw.githubusercontent.com/yuqALL/wqd7012_groupwork/main
 # Precomputed evaluation results for remote display (matched with ipynb)
 PRECOMPUTED_RESULTS = {
     "rf": {
-        "rmse": 0.7123,
-        "mae": 0.1258,
-        "r2": 0.9971
+        "rmse": 0.1507,
+        "mae": 0.0127,
+        "r2": 0.9999
     },
     "xgb": {
-        "rmse": 0.4914,
-        "mae": 0.1441,
+        "rmse": 0.5017,
+        "mae": 0.1757,
         "r2": 0.9986
     },
     "hybrid_cnn": {
@@ -568,7 +568,7 @@ print("Countries in dataset:", countries)
     with col2:
         st.metric("Features", "14")
     with col3:
-        st.metric("Countries", "1")
+        st.metric("Countries", "4")
 
     # ============================================
     # 2. EXPLORATORY DATA ANALYSIS (EDA)
@@ -595,7 +595,7 @@ print("Countries in dataset:", countries)
 sns.set_style("whitegrid")
 
 # Select numeric columns for visualization
-cols_to_plot = ['Ammonia (mg/l)', 'Biochemical Oxygen Demand (mg/l)', 'Dissolved Oxygen (mg/l)']
+cols_to_plot = ['Ammonia (mg/l)', 'Dissolved Oxygen (mg/l)', 'Orthophosphate (mg/l)']
 
 # Create subplots with adjusted spacing
 fig, axes = plt.subplots(1, 3, figsize=(20, 6))
@@ -613,6 +613,7 @@ for i, col in enumerate(cols_to_plot):
         # Rotate x-axis labels to prevent overlap
         axes[i].tick_params(axis='x', rotation=45)
 
+plt.tight_layout()
 plt.show()
     """, language="python")
 
@@ -627,13 +628,15 @@ plt.show()
     | Parameter | Distribution Type | Key Observation |
     |-----------|-----------------|-----------------|
     | Ammonia (mg/l) | Right-skewed (Log-normal) | Most values < 0.5 mg/l, with occasional high pollution events |
-    | Biochemical Oxygen Demand (mg/l) | Right-skewed | Typical of organic pollution indicators |
     | Dissolved Oxygen (mg/l) | Approximately Normal | Centered around 8 mg/l (healthy level for rivers) |
+    | Orthophosphate (mg/l) | Right-skewed | Most values concentrated at lower levels, occasional spikes |
 
-    **Key Finding:** From the distribution plots, both Ammonia and BOD are clearly right-skewed.
-    Most values are concentrated at lower levels, while a small number of observations extend to very high values.
-    This suggests that in most cases the water quality is relatively normal, but there are some instances where pollution levels are much higher.
-    This pattern is typical of environmental data where pollution events are relatively rare but can be severe.
+    **Key Finding:** From the distribution plots, Ammonia and Orthophosphate show clear right-skewed distributions,
+    where most observations are concentrated at lower concentration levels while a smaller number of samples
+    contain much higher values. This suggests that water quality is generally within normal conditions,
+    although occasional pollution spikes or contamination events are present. Dissolved Oxygen (DO) is more
+    concentrated around higher values, indicating relatively healthy oxygen conditions in most water samples,
+    with only a few lower-value observations suggesting possible environmental stress.
     """)
 
     st.markdown("---")
@@ -642,66 +645,66 @@ plt.show()
 
     st.markdown("""
     Analyzing water quality trends over time helps us understand how environmental conditions have changed
-    from 2000 to 2023. By examining key indicators like ammonia (a pollution marker) and dissolved oxygen
-    (an ecosystem health indicator), we can assess the effectiveness of water quality management strategies
-    and identify any long-term patterns or seasonal variations in the data.
+    from 2000 to 2023. By examining key indicators like ammonia (a pollution marker), dissolved oxygen
+    (an ecosystem health indicator), and orthophosphate across different countries, we can assess the
+    effectiveness of water quality management strategies and identify any long-term patterns or
+    country-specific variations in the data.
     """)
 
     st.markdown("**Time Series Trend Analysis Code:**")
     st.code("""
-# 1. Ensure Date column is valid and filter the data
-df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
-df = df.dropna(subset=['Date'])
-df = df[(df['Date'].dt.year >= 2000) & (df['Date'].dt.year <= 2023)].copy()
-
-# 2. Extract year and calculate the yearly average
+# 1. Extract year and calculate the yearly average by Country
 df['Year'] = df['Date'].dt.year
-yearly_avg = df.groupby('Year')[['Ammonia (mg/l)', 'Dissolved Oxygen (mg/l)']].mean()
 
-# 3. Plot with Dual Y-Axis
-fig, ax1 = plt.subplots(figsize=(12, 6))
+# Group by Year and Country
+yearly_country_avg = df.groupby(['Year', 'Country'])[['Ammonia (mg/l)', 'Dissolved Oxygen (mg/l)', 'Orthophosphate (mg/l)']].mean().reset_index()
 
-# Plot Ammonia on the left axis (ax1)
-color1 = 'tab:blue'
-ax1.set_xlabel('Year', fontsize=12)
-ax1.set_ylabel('Ammonia (mg/l)', color=color1, fontsize=12)
-line1 = ax1.plot(yearly_avg.index, yearly_avg['Ammonia (mg/l)'], color=color1, marker='o', label='Ammonia')
-ax1.tick_params(axis='y', labelcolor=color1)
+# 2. Plot Trends by Country
+fig, axes = plt.subplots(1, 3, figsize=(22, 6), sharex=True)
 
-# Create a second y-axis for Dissolved Oxygen (ax2)
-ax2 = ax1.twinx()
-color2 = 'tab:green'
-ax2.set_ylabel('Dissolved Oxygen (mg/l)', color=color2, fontsize=12)
-line2 = ax2.plot(yearly_avg.index, yearly_avg['Dissolved Oxygen (mg/l)'], color=color2, marker='s', label='Dissolved Oxygen')
-ax2.tick_params(axis='y', labelcolor=color2)
+# --- Plot 1: Ammonia Trends ---
+sns.lineplot(data=yearly_country_avg, x='Year', y='Ammonia (mg/l)',
+             hue='Country', marker='o', ax=axes[0])
+axes[0].set_title('Average Ammonia Levels by Country', fontsize=14, fontweight='bold')
+axes[0].set_xlabel('Year', fontsize=12)
+axes[0].set_ylabel('Ammonia (mg/l)', fontsize=12)
+axes[0].grid(True, linestyle='--', alpha=0.3)
 
-# Combine legends from both axes
-lines = line1 + line2
-labels = [l.get_label() for l in lines]
-ax1.legend(lines, labels, loc='upper left')
+# --- Plot 2: Dissolved Oxygen Trends ---
+sns.lineplot(data=yearly_country_avg, x='Year', y='Dissolved Oxygen (mg/l)',
+             hue='Country', marker='D', ax=axes[1])
+axes[1].set_title('Average Dissolved Oxygen by Country', fontsize=14, fontweight='bold')
+axes[1].set_xlabel('Year', fontsize=12)
+axes[1].set_ylabel('Dissolved Oxygen (mg/l)', fontsize=12)
+axes[1].grid(True, linestyle='--', alpha=0.3)
 
-plt.title('Average Water Quality Metrics Over Time (Dual Axis: 2000-2023)', fontsize=14)
-plt.grid(True, linestyle='--', alpha=0.3)
+# --- Plot 3: Orthophosphate Trends ---
+sns.lineplot(data=yearly_country_avg, x='Year', y='Orthophosphate (mg/l)',
+             hue='Country', marker='s', ax=axes[2])
+axes[2].set_title('Average Orthophosphate Levels by Country', fontsize=14, fontweight='bold')
+axes[2].set_xlabel('Year', fontsize=12)
+axes[2].set_ylabel('Orthophosphate (mg/l)', fontsize=12)
+axes[2].grid(True, linestyle='--', alpha=0.3)
+
+fig.suptitle('Temporal Trends of Water Quality Parameters by Country', fontsize=18, fontweight='bold', y=1.03)
+plt.tight_layout()
 plt.show()
     """, language="python")
 
     st.markdown("**Time Series Trend Plot:**")
-    st.image("images/eda_timeseries.png", width="stretch", caption="Average Water Quality Metrics Over Time (2000-2023)")
+    st.image("images/eda_timeseries.png", width="stretch", caption="Temporal Trends of Water Quality Parameters by Country (2000-2023)")
 
     st.markdown("""
     **Time Series Analysis Results:**
 
-    | Year Range | Ammonia Trend | Dissolved Oxygen Trend | Overall Assessment |
-    |------------|---------------|------------------------|-------------------|
-    | 2000-2005 | High (~0.3 mg/l) | Moderate (~7.5 mg/l) | Baseline period |
-    | 2006-2010 | Decreasing | Stable | Water quality improving |
-    | 2011-2015 | Low (~0.15 mg/l) | Good (~8 mg/l) | Significant improvement |
-    | 2016-2023 | Very low (~0.1 mg/l) | Excellent (~8.5 mg/l) | Sustained quality |
+    The temporal trend plots indicate that ammonia and orthophosphate concentrations generally decrease
+    over time in several countries, suggesting improvements in water quality and reduced nutrient pollution.
+    However, some noticeable spikes are still present, particularly in Canada, indicating occasional
+    pollution events or fluctuations in environmental conditions.
 
-    **Key Finding:** From the trend analysis, ammonia is clearly going down over time, which means pollution is getting better.
-    Dissolved oxygen is relatively stable but fluctuates across the years.
-    Overall, the water quality seems to be improving, although there are still some ups and downs.
-    This positive trend suggests that environmental regulations and water quality management initiatives are working effectively.
+    Dissolved oxygen levels remain relatively stable across the years, with most countries maintaining
+    values around healthy ranges for rivers. Minor fluctuations are observed, but overall oxygen
+    conditions appear consistent.
     """)
 
     st.markdown("---")
@@ -753,8 +756,8 @@ sns.heatmap(
     linewidths=0.5
 )
 
-plt.title('Enhanced Correlation Matrix (Water Quality + Target)', fontsize=14)
-# plt.tight_layout()  # Disabled for cloud compatibility
+plt.title('Water Quality Parameters Correlation Matrix', fontsize=14)
+plt.tight_layout()
 plt.show()
     """, language="python")
 
@@ -763,14 +766,17 @@ plt.show()
 
     st.markdown("""
     **Key Findings:**
-    - **Nitrate and Nitrogen** are highly correlated (r > 0.8), which is expected as they are both
-      nitrogen compounds commonly found in water systems
-    - **Most pollution indicators** (Ammonia, BOD, Nitrate, Nitrogen) have **negative correlations**
-      with CCME_Values, meaning higher pollution leads to lower water quality
-    - **Dissolved Oxygen** has a **positive effect** on water quality, as higher oxygen levels
-      support healthier aquatic ecosystems
-    - **pH and Temperature** show weaker correlations, suggesting they have moderate but not
-      dominant effects on water quality
+    - **Nitrate and Nitrogen** have a strong positive correlation, indicating that these nutrient-related
+      parameters tend to increase together and may originate from similar pollution sources such as
+      river wastewater discharge.
+    - **Orthophosphate** also shows moderate positive correlations with nitrate and nitrogen, suggesting
+      interconnected nutrient pollution dynamics.
+    - **Most pollution-related parameters**, including ammonia, orthophosphate, nitrate, and nitrogen,
+      exhibit negative correlations with the CCME Water Quality Index, indicating that higher pollutant
+      concentrations are associated with poorer water quality conditions. Among these, orthophosphate
+      and nitrogen demonstrate relatively stronger negative relationships with water quality index (WQI).
+    - **Dissolved Oxygen** shows a slight positive correlation with WQI, suggesting that higher oxygen
+      levels are generally associated with healthier river environments.
     """)
 
     # ============================================
@@ -940,27 +946,30 @@ rf_pipeline.fit(X_train, y_train)
     st.markdown("**XGBoost Training Code:**")
     st.code("""
 # Use the same clean dataset
-df_xgb = df_cleaned.copy()
-X = df_xgb.drop(columns=[target_col])
-y = df_xgb[target_col]
+df_xgb = df_baseline.copy()
 
-# Identify feature types and build preprocessor
-cat_features = ['Country', 'Waterbody Type']
-num_features = [col for col in X.columns if col not in cat_features]
+exclude_cols = ['Country', 'Waterbody Type', 'Year', 'Month', 'CCME_Values']
+feature_cols = [col for col in df_xgb.columns if col not in exclude_cols]
 
-preprocessor = ColumnTransformer(transformers=[
-    ('num', StandardScaler(), num_features),
-    ('cat', OneHotEncoder(handle_unknown='ignore'), cat_features)
-])
+X_xgb = df_xgb[feature_cols]
+y_xgb = df_xgb['CCME_Values']
+
+# Define preprocessor (numeric features only)
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', StandardScaler(), X_xgb.columns)
+    ])
 
 # Define XGBoost pipeline
 xgb_pipeline = Pipeline(steps=[
     ('preprocessor', preprocessor),
-    ('regressor', XGBRegressor(n_estimators=100, learning_rate=0.1, max_depth=6, random_state=42, n_jobs=-1))
+    ('regressor', xgb.XGBRegressor(n_estimators=300, max_depth=6, learning_rate=0.1,
+                                   subsample=0.8, colsample_bytree=0.8, random_state=42,
+                                   objective='reg:squarederror', n_jobs=-1))
 ])
 
 # Train-test split and model training
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(X_xgb, y_xgb, test_size=0.2, random_state=42)
 xgb_pipeline.fit(X_train, y_train)
     """, language="python")
 
@@ -1436,8 +1445,8 @@ print(f"R2 Score: {r2_hybrid:.4f}")
     st.subheader("3.5 Model Evaluation and Comparison")
 
     st.markdown("""
-    This section provides a comprehensive comparison between the Random Forest, XGBoost, Hybrid CNN-XGBoost,
-    and Deep Learning (1D-CNN) models based on their prediction performance. By analyzing all four models,
+    This section provides a comprehensive comparison between the Random Forest, XGBoost, and Hybrid CNN-XGBoost
+    models based on their prediction performance. By analyzing all three models,
     we can identify which approach best captures the relationships in water quality data.
     """)
 
@@ -1449,8 +1458,7 @@ print(f"R2 Score: {r2_hybrid:.4f}")
     | Random Forest | {:.4f} | {:.4f} | {:.4f} |
     | XGBoost | {:.4f} | {:.4f} | {:.4f} |
     | Hybrid CNN-XGBoost | {:.4f} | {:.4f} | {:.4f} |
-    | Hybrid-CNN | {:.4f} | {:.4f} | {:.4f} |
-    """.format(rmse_rf, mae_rf, r2_rf, rmse_xgb, mae_xgb, r2_xgb, 5.3968, 3.1332, 0.5559, rmse_cnn, mae_cnn, r2_cnn))
+    """.format(rmse_rf, mae_rf, r2_rf, rmse_xgb, mae_xgb, r2_xgb, 5.3968, 3.1332, 0.5559))
 
     st.markdown("**Final Model Comparison Visualization:**")
     st.image("images/model_comparison.png", width="stretch", caption="Model Comparison: RMSE, MAE, and R² Score Comparison")
@@ -1478,8 +1486,6 @@ print(f"R2 Score: {r2_hybrid:.4f}")
       accuracy across different sample sizes.
     - **Hybrid CNN-XGBoost** demonstrates moderate performance with an R² score of 0.5559, combining
       deep feature learning with gradient boosting.
-    - **1D-CNN** demonstrates strong performance with an R² score of {:.4f}, capturing complex
-      patterns in the data through automated feature learning.
     - Traditional ML models (RF/XGB) achieve exceptionally high R² scores (>0.99), indicating excellent fit to the data.
 
     **Feature Importance Comparison:**
@@ -1487,27 +1493,22 @@ print(f"R2 Score: {r2_hybrid:.4f}")
       the most critical positive indicator
     - **Hybrid CNN-XGBoost:** Combines CNN's automated feature learning with XGBoost's gradient boosting,
       leveraging the strengths of both approaches
-    - **CNN:** Automatically learns hierarchical features without manual feature engineering,
-      capturing temporal patterns effectively
 
     **Model Selection Recommendations:**
     | Scenario | Recommended Model |
     |----------|------------------|
     | Best overall accuracy | XGBoost |
     | Ease of interpretability | Random Forest |
-    | Handling time-series data | 1D-CNN |
     | Hybrid approach | Hybrid CNN-XGBoost |
     | Production deployment | XGBoost (best performance) |
-    | Research/exploration | 1D-CNN / Hybrid CNN-XGBoost |
+    | Research/exploration | Hybrid CNN-XGBoost |
 
     **Conclusion:** XGBoost demonstrates superior predictive performance with {:.2f}% lower RMSE
     compared to Random Forest, making it the preferred choice for water quality index prediction.
-    The 1D-CNN model provides a strong alternative, especially when dealing with time-series
-    patterns and requiring automated feature extraction. The Hybrid CNN-XGBoost approach shows
-    potential for more complex datasets where combining deep learning features with traditional
-    gradient boosting can yield improved results.
+    The Hybrid CNN-XGBoost approach shows potential for more complex datasets where combining
+    deep learning features with traditional gradient boosting can yield improved results.
     """.format(
-        rmse_xgb, mae_rf, r2_cnn,
+        rmse_xgb, mae_rf,
         (rmse_rf - rmse_xgb) / rmse_rf * 100
     ))
 
