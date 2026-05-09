@@ -51,22 +51,21 @@ def train_rf_model(df):
     df_rf = df_cleaned.sample(n=min(20000, len(df_cleaned)), random_state=42)
 
     target_col = 'CCME_Values'
-    X = df_rf.drop(columns=[target_col])
+    exclude_cols = ['CCME_Values']
+    feature_cols = [col for col in df_rf.columns if col not in exclude_cols]
+    X = df_rf[feature_cols]
     y = df_rf[target_col]
-
-    cat_features = ['Country', 'Waterbody Type']
-    num_features = [col for col in X.columns if col not in cat_features]
 
     print("Building Random Forest pipeline...")
     preprocessor = ColumnTransformer(
         transformers=[
-            ('num', StandardScaler(), num_features),
-            ('cat', OneHotEncoder(handle_unknown='ignore'), cat_features)
+            ('num', StandardScaler(), X.columns)
         ])
 
     rf_pipeline = Pipeline(steps=[
         ('preprocessor', preprocessor),
-        ('regressor', RandomForestRegressor(n_estimators=100, random_state=42, n_jobs=-1))
+        ('regressor', RandomForestRegressor(n_estimators=300, max_depth=6, max_features=0.8,
+                                            max_samples=0.8, random_state=42, n_jobs=-1))
     ])
 
     print("Training Random Forest model...")
@@ -86,22 +85,22 @@ def train_xgb_model(df):
     df_xgb = df_cleaned.sample(n=min(20000, len(df_cleaned)), random_state=42)
 
     target_col = 'CCME_Values'
-    X = df_xgb.drop(columns=[target_col])
+    exclude_cols = ['CCME_Values']
+    feature_cols = [col for col in df_xgb.columns if col not in exclude_cols]
+    X = df_xgb[feature_cols]
     y = df_xgb[target_col]
-
-    cat_features = ['Country', 'Waterbody Type']
-    num_features = [col for col in X.columns if col not in cat_features]
 
     print("Building XGBoost pipeline...")
     preprocessor = ColumnTransformer(
         transformers=[
-            ('num', StandardScaler(), num_features),
-            ('cat', OneHotEncoder(handle_unknown='ignore'), cat_features)
+            ('num', StandardScaler(), X.columns)
         ])
 
     xgb_pipeline = Pipeline(steps=[
         ('preprocessor', preprocessor),
-        ('regressor', XGBRegressor(n_estimators=100, random_state=42, n_jobs=-1, verbosity=0))
+        ('regressor', XGBRegressor(n_estimators=300, max_depth=6, learning_rate=0.1,
+                                   subsample=0.8, colsample_bytree=0.8, random_state=42,
+                                   objective='reg:squarederror', n_jobs=-1))
     ])
 
     print("Training XGBoost model...")
