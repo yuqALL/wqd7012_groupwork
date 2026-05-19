@@ -7,33 +7,35 @@ import os
 import pickle
 import urllib.request
 
+from datetime import datetime, timedelta
+
 # PyTorch imports for Deep Learning model
 import torch
 import torch.nn as nn
 
 plt.rcParams['font.family'] = 'DejaVu Sans'
 
-base_dir = os.path.dirname(os.getcwd())
+base_dir = os.getcwd()
 data_dir = os.path.join(base_dir, "data")
-model_dir = os.path.join(base_dir, "models")
+model_dir = os.path.join(base_dir, "model")
 
 RF_MODEL_PATH = os.path.join(model_dir, "rf_model.pkl")
 XGB_MODEL_PATH = os.path.join(model_dir, "xgb_model.pkl")
 CNN_MODEL_PATH = os.path.join(model_dir, "best_hybrid_cnn.pth")
-DATA_URL_RIVER = "https://raw.githubusercontent.com/yuqALL/wqd7012_groupwork/main/River_Water_Quality.csv"
-DATA_URL_COMBINED = "https://raw.githubusercontent.com/yuqALL/wqd7012_groupwork/main/Combined_dataset.csv"
-MODEL_URL_RF = "https://raw.githubusercontent.com/yuqALL/wqd7012_groupwork/main/rf_model.pkl"
-MODEL_URL_XGB = "https://raw.githubusercontent.com/yuqALL/wqd7012_groupwork/main/xgb_model.pkl"
-MODEL_URL_CNN = "https://raw.githubusercontent.com/yuqALL/wqd7012_groupwork/main/best_hybrid_cnn.pth"
+DATA_URL_RIVER = "https://raw.githubusercontent.com/yuqALL/wqd7012_groupwork/main/data/River_Water_Quality.csv"
+DATA_URL_COMBINED = "https://raw.githubusercontent.com/yuqALL/wqd7012_groupwork/main/data/Combined_dataset.csv"
+MODEL_URL_RF = "https://raw.githubusercontent.com/yuqALL/wqd7012_groupwork/main/model/rf_model.pkl"
+MODEL_URL_XGB = "https://raw.githubusercontent.com/yuqALL/wqd7012_groupwork/main/model/xgb_model.pkl"
+MODEL_URL_CNN = "https://raw.githubusercontent.com/yuqALL/wqd7012_groupwork/main/model/best_hybrid_cnn.pth"
 
 @st.cache_data
 def download_data():
-    if not os.path.exists("River_Water_Quality.csv"):
+    if not os.path.exists(os.path.join(data_dir, "River_Water_Quality.csv")):
         with st.spinner("Downloading River_Water_Quality.csv..."):
-            urllib.request.urlretrieve(DATA_URL_RIVER, "River_Water_Quality.csv")
-    if not os.path.exists("Combined_dataset.csv"):
+            urllib.request.urlretrieve(DATA_URL_RIVER, os.path.join(data_dir, "River_Water_Quality.csv"))
+    if not os.path.exists(os.path.join(data_dir, "Combined_dataset.csv")):
         with st.spinner("Downloading Combined_dataset.csv..."):
-            urllib.request.urlretrieve(DATA_URL_COMBINED, "Combined_dataset.csv")
+            urllib.request.urlretrieve(DATA_URL_COMBINED, os.path.join(data_dir, "Combined_dataset.csv"))
 
 def download_models():
     success = True
@@ -63,13 +65,13 @@ def download_models():
 @st.cache_data
 def load_raw_data():
     download_data()
-    df = pd.read_csv("River_Water_Quality.csv")
+    df = pd.read_csv(os.path.join(data_dir, "River_Water_Quality.csv"))
     return df
 
 @st.cache_data
 def load_ml_data():
     download_data()
-    df = pd.read_csv("River_Water_Quality.csv")
+    df = pd.read_csv(os.path.join(data_dir, "River_Water_Quality.csv"))
     df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
     df = df.dropna(subset=['Date'])
     df = df[(df['Date'].dt.year >= 2000) & (df['Date'].dt.year <= 2023)]
@@ -100,6 +102,16 @@ def load_xgb_model():
     with open(XGB_MODEL_PATH, 'rb') as f:
         pipeline = pickle.load(f)
     return pipeline
+
+def generate_random_timestamps(n):
+    start_date = datetime(2023, 1, 1)
+    end_date = datetime.now()
+
+    total_seconds = int((end_date - start_date).total_seconds())
+    random_seconds = np.random.randint(0, total_seconds, n)
+    timestamps = [start_date + timedelta(seconds=int(sec)) for sec in random_seconds]
+
+    return pd.to_datetime(timestamps)
 
 # Define the CNN model architecture (matching the trained model)
 class WaterQualityCNN(nn.Module):
@@ -182,11 +194,10 @@ def main():
     # APPLICATION DEVELOPMENT
     # ============================================
 
-    st.header("Water Quality Index Prediction")
+    st.header("River Water Quality Prediction")
 
     st.markdown("""
-    This interactive application allows you to predict the CCME Water Quality Index based on various water quality parameters.
-    Adjust the parameters below using the sliders and click the prediction button to generate the water quality index estimate.
+    This interactive application allows you to predict the Water Quality Index (WQI) based on uploaded water quality data.
     """)
 
     df = load_raw_data()
@@ -205,7 +216,8 @@ def main():
                 st.sidebar.error(f"❌ Failed to load RF model: {str(e)}")
                 st.stop()
         else:
-            st.sidebar.error("❌ RF model file not found on GitHub!")
+            st.sidebar.error("❌ RF model file not found on GitHub...")
+
     elif model_choice == "🚀 XGBoost":
         if os.path.exists(XGB_MODEL_PATH):
             try:
@@ -215,7 +227,7 @@ def main():
                 st.sidebar.error(f"❌ Failed to load XGBoost model: {str(e)}")
                 st.stop()
         else:
-            st.sidebar.error("❌ XGB model file not found on GitHub!")
+            st.sidebar.error("❌ XGB model file not found on GitHub...")
             st.stop()
     else:
         use_hybrid_xgb = True
@@ -227,7 +239,7 @@ def main():
                 st.sidebar.error(f"❌ Failed to load Hybrid CNN model: {str(e)}")
                 st.stop()
         else:
-            st.sidebar.error("❌ Hybrid CNN model file not found on GitHub!")
+            st.sidebar.error("❌ Hybrid CNN model file not found on GitHub...")
             st.stop()
 
     st.markdown("### Input Water Quality Parameters")
@@ -236,12 +248,6 @@ def main():
     **Expected Input Format:**
     Upload a CSV or Excel file with the following columns:
     """)
-
-    format_columns = [
-        'Dissolved Oxygen (mg/L)', 'Nitrate (mg/L)', 'Nitrogen (mg/L)',
-        'Ammonia (mg/L)', 'BOD (mg/L)', 'Orthophosphate (mg/L)', 'pH', 'Temperature'
-    ]
-    st.code(" | ".join(format_columns))
 
     format_table = pd.DataFrame({
         'Column Name': ['Dissolved Oxygen (mg/L)', 'Nitrate (mg/L)', 'Nitrogen (mg/L)',
@@ -263,8 +269,19 @@ def main():
     sample_csv_path = os.path.join(os.path.dirname(__file__), 'sample_input.csv')
     if os.path.exists(sample_csv_path):
         sample_preview = pd.read_csv(sample_csv_path, nrows=3)
-        st.markdown("**Example CSV content (first 3 rows from sample_input.csv):**")
-        st.code(sample_preview.to_csv(index=False, sep='|'))
+
+        st.markdown("**Example Input Format (First 3 rows from sample_input.csv):**")
+
+        st.dataframe(sample_preview.style.format({
+            'Dissolved Oxygen (mg/L)': '{:.2f}',
+            'Nitrate (mg/L)': '{:.2f}',
+            'Nitrogen (mg/L)': '{:.2f}',
+            'Ammonia (mg/L)': '{:.2f}',
+            'BOD (mg/L)': '{:.2f}',
+            'Orthophosphate (mg/L)': '{:.2f}',
+            'pH': '{:.2f}',
+            'Temperature': '{:.2f}'
+        }), width='stretch')
 
         with open(sample_csv_path, 'rb') as f:
             st.download_button(
@@ -275,11 +292,17 @@ def main():
             )
     else:
         st.markdown("**Example CSV content:**")
-        st.code("""Dissolved Oxygen (mg/L) | Nitrate (mg/L) | Nitrogen (mg/L) | Ammonia (mg/L) | BOD (mg/L) | Orthophosphate (mg/L) | pH | Temperature
-8.5 | 5.2 | 2.1 | 0.3 | 4.5 | 0.1 | 7.5 | 15.0
-7.2 | 6.8 | 1.8 | 0.5 | 6.2 | 0.15 | 7.8 | 18.5""")
-
-    if st.session_state.pop('_clear_predict', False):
+        sample_df = pd.DataFrame({
+            'Dissolved Oxygen (mg/L)': [8.5, 7.2],
+            'Nitrate (mg/L)': [5.2, 6.8],
+            'Nitrogen (mg/L)': [2.1, 1.8],
+            'Ammonia (mg/L)': [0.3, 0.5],
+            'BOD (mg/L)': [4.5, 6.2],
+            'Orthophosphate (mg/L)': [0.1, 0.15],
+            'pH': [7.5, 7.8],
+            'Temperature': [15.0, 18.5]
+        })
+        st.dataframe(sample_df, width='stretch')
         st.session_state.prediction_result_df = None
         st.session_state.prediction_display_df = None
         st.session_state.last_prediction_done = False
@@ -293,7 +316,7 @@ def main():
     with col_up:
         uploaded_file = st.file_uploader(
             "Upload CSV or Excel file",
-            type=["csv", "xlsx", "xls"],
+            type=["csv", "xlsx"],
             key=f"predict_upload_{st.session_state.get('pred_upload_key', 0)}",
             label_visibility="collapsed"
         )
@@ -308,10 +331,21 @@ def main():
     file_name = None
     if use_sample:
         if os.path.exists(sample_csv_path):
-            st.session_state._clear_predict = True
+            pred_df = pd.read_csv(sample_csv_path)
+            file_name = "sample_input.csv"
+            
+            st.session_state.pred_input_df = pred_df
+            st.session_state.pred_input_name = file_name
+            st.session_state.sample_loaded = True
+
+            st.session_state.prediction_result_df = None
+            st.session_state.prediction_display_df = None
+            st.session_state.last_prediction_done = False
+
             st.rerun()
         else:
             st.warning("Sample input file not found.")
+
     elif uploaded_file is not None:
         try:
             if uploaded_file.name.endswith('.csv'):
@@ -443,7 +477,7 @@ def main():
                         )
 
                         partial_df = input_df.iloc[:end].copy()
-                        partial_df['Timestamp'] = pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')
+                        partial_df['Timestamp'] = generate_random_timestamps(len(partial_df))
                         partial_df['CCME_WQI'] = all_predictions
                         partial_df['Contamination Level'] = partial_df['CCME_WQI'].apply(get_contamination_level)
                         partial_display = partial_df[[
@@ -457,7 +491,7 @@ def main():
                     progress_bar.progress(1.0, text=f"Completed: {total_rows}/{total_rows} records")
 
                     result_df = input_df.copy()
-                    result_df['Timestamp'] = pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')
+                    result_df['Timestamp'] = generate_random_timestamps(len(result_df))
                     result_df['CCME_WQI'] = all_predictions
                     result_df['Contamination Level'] = result_df['CCME_WQI'].apply(get_contamination_level)
                     display_df = result_df[[
@@ -548,15 +582,15 @@ def main():
 
     st.markdown("---")
     st.markdown('<a id="section4-2"></a>', unsafe_allow_html=True)
-    st.subheader("Water Quality Dashboard")
+    st.subheader("Water Quality Monitoring and Contamination Assessment Dashboard")
 
     st.markdown("""
-    Upload historical prediction data (CSV with **Timestamp** column) to visualize trends and contamination level rates.
+    Upload historical prediction data (CSV with **Timestamp** column) to visualize water quality trends and contamination level levels.
     The expected format is the output CSV from the prediction above.
     """)
 
     demo_csv_path = os.path.join(os.path.dirname(__file__), 'demo_dashboard.csv')
-    st.markdown("**Upload Historical Data for Dashboard**")
+    st.markdown("**Upload Data**")
 
     if st.session_state.pop('_clear_dashboard', False):
         st.session_state.prediction_result_df = None
@@ -630,23 +664,71 @@ def main():
 
                 if available_params:
                     col_a, col_b = st.columns(2)
+
                     with col_a:
                         selected_param = st.selectbox("Select Parameter", available_params)
+
                     with col_b:
                         period = st.selectbox("Select Time Period", ["Weekly", "Monthly", "Yearly"])
 
-                    if period == "Weekly":
-                        dash_df['Period'] = dash_df['Timestamp'].dt.to_period('W').dt.start_time
-                    elif period == "Monthly":
-                        dash_df['Period'] = dash_df['Timestamp'].dt.to_period('M').dt.start_time
+                    if period in ["Weekly", "Monthly"]:
+                        selected_year = st.selectbox("Select Year", sorted(dash_df['Timestamp'].dt.year.unique()), key="trend_year")
+                        trend_df = dash_df[dash_df['Timestamp'].dt.year == selected_year].copy()
+                        
                     else:
-                        dash_df['Period'] = dash_df['Timestamp'].dt.to_period('Y').dt.start_time
+                        trend_df = dash_df.copy()
 
-                    avg_df = dash_df.groupby('Period')[selected_param].mean().reset_index()
-                    avg_df['Period'] = avg_df['Period'].dt.strftime('%Y-%m-%d')
+                    if period == "Weekly":
+                        month_options = {"January": 1, "February": 2, "March": 3, "April": 4,
+                                         "May": 5, "June": 6, "July": 7, "August": 8,
+                                         "September": 9, "October": 10, "November": 11, "December": 12} 
+                        
+                        selected_month_name = st.selectbox("Select Month", list(month_options.keys()), key="trend_month")
+                        selected_month = month_options[selected_month_name]
+
+                        trend_df = trend_df[trend_df['Timestamp'].dt.month == selected_month]
+                        trend_df['Period'] = trend_df['Timestamp'].dt.to_period('W').dt.start_time
+
+                    elif period == "Monthly":
+                        trend_df['Period'] = trend_df['Timestamp'].dt.to_period('M').dt.start_time
+
+                    else:
+                        trend_df['Period'] = trend_df['Timestamp'].dt.to_period('Y').dt.start_time
+
+                    avg_df = trend_df.groupby('Period')[selected_param].mean().reset_index()
+
+                    if period == "Weekly":
+                        weekly_labels = []
+
+                        for start_date in avg_df['Period']:
+                            end_date = start_date + pd.Timedelta(days=6)
+                            label = (start_date.strftime('%d %b') + ' - ' + end_date.strftime('%d %b'))
+                            weekly_labels.append(label)
+
+                        avg_df['Label'] = weekly_labels
+
+                    elif period == "Monthly":
+                        avg_df['Label'] = avg_df['Period'].dt.strftime('%b')
+                        month_order = ['Jan', 'Feb', 'Mar', 'Apr',
+                                       'May', 'Jun', 'Jul', 'Aug',
+                                       'Sep', 'Oct', 'Nov', 'Dec']
+                        
+                        avg_df['Label'] = pd.Categorical(avg_df['Label'], categories=month_order, ordered=True)
+                        avg_df = avg_df.sort_values('Label')
+
+                    else:
+                        avg_df['Label'] = avg_df['Period'].dt.strftime('%Y')
 
                     st.markdown(f"**Average {selected_param} ({period}):**")
-                    st.line_chart(avg_df.set_index('Period'), y=selected_param, width='stretch')
+
+                    line_chart = alt.Chart(avg_df).mark_line(point=True).encode(
+                        x=alt.X('Label:N', title=period, sort=month_order if period == "Monthly" else None, axis=alt.Axis(labelAngle=0)),
+                        y=alt.Y(f'{selected_param}:Q', title=selected_param),
+                        tooltip=['Label', selected_param]
+                    ).properties(height=400)
+
+                    st.altair_chart(line_chart, width='stretch')
+                   
                 else:
                     st.info("No water quality parameter columns found in the uploaded file.")
 
@@ -681,59 +763,160 @@ def main():
                 display_wqi = wqi_col if wqi_col in dash_df.columns else ('CCME_WQI' if 'CCME_WQI' in dash_df.columns else None)
 
                 if contam_col:
-                    col_c, col_d = st.columns(2)
-                    with col_c:
-                        rate_period = st.selectbox(
-                            "Select Period for Contamination Rates",
-                            ["Weekly", "Monthly", "Yearly"],
-                            key="rate_period"
-                        )
+                    rate_period = st.selectbox("Select Period for Contamination Rates", ["Weekly", "Monthly", "Yearly"], key="rate_period")
 
                     level_order = ["Excellent", "Good", "Fair", "Marginal", "Poor"]
                     level_colors = ["#22c55e", "#84cc16", "#eab308", "#f97316", "#ef4444"]
 
-                    if rate_period == "Weekly":
-                        dash_df['RatePeriod'] = dash_df['Timestamp'].dt.to_period('W').dt.start_time
-                    elif rate_period == "Monthly":
-                        dash_df['RatePeriod'] = dash_df['Timestamp'].dt.to_period('M').dt.start_time
-                    else:
-                        dash_df['RatePeriod'] = dash_df['Timestamp'].dt.to_period('Y').dt.start_time
+                    # Weekly and Monthly require year filtering
+                    if rate_period in ["Weekly", "Monthly"]:
 
-                    rate_df = dash_df.groupby('RatePeriod')[contam_col].value_counts().unstack(fill_value=0)
+                        selected_year = st.selectbox("Select Year", sorted(dash_df['Timestamp'].dt.year.unique()), key="selected_year")
+                        filtered_df = dash_df[dash_df['Timestamp'].dt.year == selected_year].copy()
+
+                    else:
+                        filtered_df = dash_df.copy()
+
+                    if rate_period == "Weekly":
+                        month_options = {"January": 1, "February": 2, "March": 3, "April": 4, "May": 5, "June": 6,
+                                         "July": 7, "August": 8, "September": 9, "October": 10, "November": 11, "December": 12}
+
+                        selected_month_name = st.selectbox("Select Month", list(month_options.keys()), key="selected_month")
+                        selected_month = month_options[selected_month_name]
+
+                        filtered_df = filtered_df[filtered_df['Timestamp'].dt.month == selected_month]
+                        filtered_df['RatePeriod'] = filtered_df['Timestamp'].dt.to_period('W').dt.start_time
+
+                        x_title = "Week"
+            
+                    elif rate_period == "Monthly":
+                        filtered_df['RatePeriod'] = filtered_df['Timestamp'].dt.to_period('M').dt.start_time
+                        x_title = "Month"
+
+                    else:
+                        filtered_df['RatePeriod'] = filtered_df['Timestamp'].dt.to_period('Y').dt.start_time
+                        x_title = "Year"
+
+                    rate_df = filtered_df.groupby('RatePeriod')[contam_col].value_counts().unstack(fill_value=0)
 
                     for level in level_order:
                         if level not in rate_df.columns:
                             rate_df[level] = 0
-                    rate_df = rate_df[level_order]
 
+                    rate_df = rate_df[level_order]
                     rate_total = rate_df.sum(axis=1)
                     rate_pct = rate_df.div(rate_total, axis=0) * 100
-                    rate_pct.index = rate_pct.index.strftime('%Y-%m-%d')
+
+                    if rate_period == "Weekly":
+                        weekly_ranges = []
+
+                        for start_date in pd.to_datetime(rate_pct.index):
+                            end_date = start_date + pd.Timedelta(days=6)
+
+                            label = (start_date.strftime('%d %b') + ' - ' + end_date.strftime('%d %b'))
+                            weekly_ranges.append(label)
+
+                        rate_pct.index = weekly_ranges
+                        rate_pct.index.name = "RatePeriod"
+
+                    elif rate_period == "Monthly":
+                        month_order = ['Jan', 'Feb', 'Mar', 'Apr',
+                                       'May', 'Jun', 'Jul', 'Aug',
+                                       'Sep', 'Oct', 'Nov', 'Dec']
+                        rate_pct.index = pd.to_datetime(rate_pct.index).strftime('%b')
+
+                        rate_pct = rate_pct.reindex(month_order)
+                        rate_pct = rate_pct.dropna(how='all')
+
+                    else:
+                        rate_pct.index = pd.to_datetime(rate_pct.index).strftime('%Y')
 
                     st.markdown(f"**Contamination Level Distribution ({rate_period}):**")
-                    rate_melt = rate_pct.reset_index().melt(
-                        id_vars='RatePeriod', var_name='Level', value_name='Percentage'
-                    )
+
+                    rate_pct_reset = rate_pct.reset_index()
+                    rate_pct_reset['SortOrder'] = range(len(rate_pct_reset))
+                    rate_melt = rate_pct_reset.melt(id_vars=['RatePeriod', 'SortOrder'], var_name='Level', value_name='Percentage')
                     rate_melt['Level'] = pd.Categorical(rate_melt['Level'], categories=level_order, ordered=True)
-                    bar_chart = alt.Chart(rate_melt).mark_bar().encode(
-                        x=alt.X('RatePeriod:T', title='Period', axis=alt.Axis(labelAngle=-45)),
-                        y=alt.Y('Percentage:Q', title='Percentage'),
-                        xOffset=alt.XOffset('Level:N'),
+
+                    if rate_period == "Weekly":
+                        chart = alt.Chart(rate_melt).mark_bar().encode(
+                        x=alt.X('RatePeriod:N', title=x_title, sort=alt.SortField(field='SortOrder'), axis=alt.Axis(labelAngle=0)),
+                        y=alt.Y('Percentage:Q', stack='normalize', title='Percentage'),
                         color=alt.Color('Level:N', scale=alt.Scale(domain=level_order, range=level_colors),
                                         legend=alt.Legend(title='Contamination Level')),
-                    ).properties(height=350)
-                    st.altair_chart(bar_chart, width='stretch')
+                    ).properties(height=400)
+                        
+                    else:
+
+                        if rate_period == "Monthly":
+                            sort_order = ['Jan', 'Feb', 'Mar', 'Apr',
+                                          'May', 'Jun', 'Jul', 'Aug',
+                                          'Sep', 'Oct', 'Nov', 'Dec']
+                            
+                        elif rate_period == "Yearly":
+                            sort_order = sorted(rate_melt['RatePeriod'].unique())
+                        
+                        else:
+                            sort_order = None
+
+                        chart = alt.Chart(rate_melt).mark_bar().encode(
+                            x=alt.X('RatePeriod:N', title=x_title, sort=sort_order, axis=alt.Axis(labelAngle=0)),
+                            y=alt.Y('Percentage:Q', title='Percentage'),
+                            xOffset = alt.XOffset('Level:N'),
+                            color=alt.Color('Level:N', scale=alt.Scale(domain=level_order, range=level_colors),
+                                            legend=alt.Legend(title='Contamination Level')),
+                        ).properties(height=350)
+
+                    st.altair_chart(chart, width='stretch')
 
                     st.markdown("**Level Distribution Summary:**")
                     col_e, col_f = st.columns(2)
+
+                    summary_count_df = rate_df.copy()
+                    summary_pct_df = rate_pct.copy()
+
+                    if rate_period == "Weekly":
+                        weekly_ranges = []
+
+                        for start_date in pd.to_datetime(summary_count_df.index):
+                            end_date = start_date + pd.Timedelta(days=6)
+                            label = (start_date.strftime('%d %b') + ' - ' + end_date.strftime('%d %b'))
+                            weekly_ranges.append(label)
+                        
+                        summary_count_df.index = weekly_ranges
+                        summary_pct_df.index = weekly_ranges
+
+                    elif rate_period == "Monthly":
+                        month_order = ['Jan', 'Feb', 'Mar', 'Apr',
+                                       'May', 'Jun', 'Jul', 'Aug',
+                                       'Sep', 'Oct', 'Nov', 'Dec']
+                        
+                        summary_count_df.index = pd.Index(pd.to_datetime(summary_count_df.index).strftime('%b'))
+                        summary_pct_df.index = summary_pct_df.index.astype(str)
+
+                        summary_count_df = summary_count_df.reindex(month_order).dropna(how='all')
+                        summary_pct_df = summary_pct_df.reindex(month_order).dropna(how='all')
+
+                    else:
+                        summary_count_df.index = pd.to_datetime(summary_count_df.index).strftime('%Y')
+                        summary_pct_df.index = pd.to_datetime(summary_pct_df.index).strftime('%Y')
+
+                    # Rename index column
+                    summary_count_df.index.name = "Period"
+                    summary_pct_df.index.name = "Period"
+
+                    summary_pct_df = summary_pct_df.round(1).astype(str) + '%'
+
                     with col_e:
                         st.markdown("**By Count:**")
-                        st.dataframe(rate_df, width='stretch')
+                        st.dataframe(summary_count_df, width='stretch')
+
                     with col_f:
                         st.markdown("**By Percentage:**")
-                        st.dataframe(rate_pct.round(1).astype(str) + '%', width='stretch')
+                        st.dataframe(summary_pct_df, width='stretch')
                 else:
                     st.info("No contamination level column found in the uploaded file.")
+
         except Exception as e:
             st.error(f"Error loading dashboard data: {str(e)}")
 
