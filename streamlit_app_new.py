@@ -2,19 +2,10 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import seaborn as sns
 import altair as alt
 import os
-import io
 import pickle
 import urllib.request
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler, OneHotEncoder
-from sklearn.compose import ColumnTransformer
-from sklearn.pipeline import Pipeline
-from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
-from xgboost import XGBRegressor
 
 # PyTorch imports for Deep Learning model
 import torch
@@ -22,38 +13,18 @@ import torch.nn as nn
 
 plt.rcParams['font.family'] = 'DejaVu Sans'
 
-RF_MODEL_PATH = "rf_model.pkl"
-XGB_MODEL_PATH = "xgb_model.pkl"
-CNN_MODEL_PATH = "best_hybrid_cnn.pth"
+base_dir = os.path.dirname(os.getcwd())
+data_dir = os.path.join(base_dir, "data")
+model_dir = os.path.join(base_dir, "models")
+
+RF_MODEL_PATH = os.path.join(model_dir, "rf_model.pkl")
+XGB_MODEL_PATH = os.path.join(model_dir, "xgb_model.pkl")
+CNN_MODEL_PATH = os.path.join(model_dir, "best_hybrid_cnn.pth")
 DATA_URL_RIVER = "https://raw.githubusercontent.com/yuqALL/wqd7012_groupwork/main/River_Water_Quality.csv"
 DATA_URL_COMBINED = "https://raw.githubusercontent.com/yuqALL/wqd7012_groupwork/main/Combined_dataset.csv"
 MODEL_URL_RF = "https://raw.githubusercontent.com/yuqALL/wqd7012_groupwork/main/rf_model.pkl"
 MODEL_URL_XGB = "https://raw.githubusercontent.com/yuqALL/wqd7012_groupwork/main/xgb_model.pkl"
 MODEL_URL_CNN = "https://raw.githubusercontent.com/yuqALL/wqd7012_groupwork/main/best_hybrid_cnn.pth"
-
-# Precomputed evaluation results for remote display (matched with ipynb)
-PRECOMPUTED_RESULTS = {
-    "rf": {
-        "rmse": 1.2110,
-        "mae": 0.5897,
-        "r2": 0.9917
-    },
-    "xgb": {
-        "rmse": 0.5017,
-        "mae": 0.1757,
-        "r2": 0.9986
-    },
-    "hybrid_cnn": {
-        "rmse": 2.3456,
-        "mae": 0.8901,
-        "r2": 0.9923
-    },
-    "hybrid_xgb": {
-        "rmse": 2.5122,
-        "mae": 1.5293,
-        "r2": 0.9644
-    }
-}
 
 @st.cache_data
 def download_data():
@@ -119,85 +90,6 @@ def prepare_ml_data(df):
     df_cleaned = df_cleaned.drop(columns=[col for col in cols_to_drop if col in df_cleaned.columns])
     df_cleaned = df_cleaned.dropna(subset=['CCME_Values'])
     return df_cleaned
-
-def get_feature_names(pipeline, cat_features, num_features):
-    cat_encoder = pipeline.named_steps['preprocessor'].named_transformers_['cat']
-    cat_names = cat_encoder.get_feature_names_out(cat_features)
-    return num_features + list(cat_names)
-
-def train_rf_model(df):
-    df_cleaned = prepare_ml_data(df)
-    df_rf = df_cleaned.sample(n=min(20000, len(df_cleaned)), random_state=42)
-
-    target_col = 'CCME_Values'
-    X = df_rf.drop(columns=[target_col])
-    y = df_rf[target_col]
-
-    cat_features = ['Country', 'Waterbody Type']
-    num_features = [col for col in X.columns if col not in cat_features]
-
-    preprocessor = ColumnTransformer(
-        transformers=[
-            ('num', StandardScaler(), num_features),
-            ('cat', OneHotEncoder(handle_unknown='ignore'), cat_features)
-        ])
-
-    rf_pipeline = Pipeline(steps=[
-        ('preprocessor', preprocessor),
-        ('regressor', RandomForestRegressor(n_estimators=100, random_state=42, n_jobs=-1))
-    ])
-
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-    with st.spinner("Training Random Forest model..."):
-        rf_pipeline.fit(X_train, y_train)
-
-    y_pred = rf_pipeline.predict(X_test)
-    rmse = np.sqrt(mean_squared_error(y_test, y_pred))
-    r2 = r2_score(y_test, y_pred)
-    mae = mean_absolute_error(y_test, y_pred)
-
-    with open(RF_MODEL_PATH, 'wb') as f:
-        pickle.dump(rf_pipeline, f)
-
-    return rf_pipeline, rmse, r2, mae, X_test, y_test, y_pred, cat_features, num_features
-
-def train_xgb_model(df):
-    df_cleaned = prepare_ml_data(df)
-    df_xgb = df_cleaned.sample(n=min(20000, len(df_cleaned)), random_state=42)
-
-    target_col = 'CCME_Values'
-    X = df_xgb.drop(columns=[target_col])
-    y = df_xgb[target_col]
-
-    cat_features = ['Country', 'Waterbody Type']
-    num_features = [col for col in X.columns if col not in cat_features]
-
-    preprocessor = ColumnTransformer(
-        transformers=[
-            ('num', StandardScaler(), num_features),
-            ('cat', OneHotEncoder(handle_unknown='ignore'), cat_features)
-        ])
-
-    xgb_pipeline = Pipeline(steps=[
-        ('preprocessor', preprocessor),
-        ('regressor', XGBRegressor(n_estimators=100, random_state=42, n_jobs=-1, verbosity=0))
-    ])
-
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-    with st.spinner("Training XGBoost model..."):
-        xgb_pipeline.fit(X_train, y_train)
-
-    y_pred = xgb_pipeline.predict(X_test)
-    rmse = np.sqrt(mean_squared_error(y_test, y_pred))
-    r2 = r2_score(y_test, y_pred)
-    mae = mean_absolute_error(y_test, y_pred)
-
-    with open(XGB_MODEL_PATH, 'wb') as f:
-        pickle.dump(xgb_pipeline, f)
-
-    return xgb_pipeline, rmse, r2, mae, X_test, y_test, y_pred, cat_features, num_features
 
 def load_rf_model():
     with open(RF_MODEL_PATH, 'rb') as f:
@@ -265,6 +157,7 @@ def load_cnn_model():
         model.load_state_dict(torch.load(CNN_MODEL_PATH, map_location=torch.device('cpu'), weights_only=True))
         model.eval()
         return model
+    
     except Exception as e:
         st.warning(f"Failed to load CNN model: {str(e)}")
         return None

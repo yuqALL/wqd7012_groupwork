@@ -29,3 +29,9 @@ Thumbs.db
 
 # Models (large files - use Git LFS)
 *.joblib
+
+# Model
+/models
+
+# Archive
+/archive

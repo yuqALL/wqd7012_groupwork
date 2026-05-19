@@ -15,13 +15,17 @@ A machine learning-based water quality analysis and prediction application using
 
 ```
 wqd7012_groupwork/
+├── data/
+│   └── Combined_dataset.csv    # Preprocessed water quality dataset
+│   └── River_Water_Quality.csv # Raw water quality dataset
 ├── streamlit_app.py       # Main Streamlit application
 ├── run_streamlit.sh       # Script to run the application locally
 ├── requirements.txt       # Python dependencies
-├── Combined_dataset.csv   # Preprocessed water quality dataset (managed by Git LFS)
-├── River_Water_Quality.csv # Raw water quality dataset (managed by Git LFS)
-├── rf_model.pkl          # Trained Random Forest model
-├── xgb_model.pkl         # Trained XGBoost model
+├── model/
+│   └── rf_model.pkl           # Trained Random Forest model
+│   └── xgb_model.pkl          # Trained XGBoost model
+│   └── best_hybrid_cnn.pth    # Trained Hybrid CNN-XGBoost model
+├── River_Water_Quality.csv # Raw water quality dataset
 ├── .streamlit/
 │   └── config.toml       # Streamlit configuration
 └── .gitattributes        # Git LFS configuration
