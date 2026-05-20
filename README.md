@@ -1,4 +1,4 @@
-# River Water Quality Prediction and Contamination Detection System
+# 🏞️ River Water Quality Prediction and Contamination Detection System
 
 **Live Application:** https://wqd7012groupwork-3swgv8agwcxjdihcyapopj.streamlit.app/
 
