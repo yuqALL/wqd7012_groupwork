@@ -1,11 +1,19 @@
+import os
+
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+os.environ["MKL_NUM_THREADS"] = "1"
+os.environ["VECLIB_MAXIMUM_THREADS"] = "1"
+
 import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import altair as alt
-import os
 import pickle
 import urllib.request
+
+from datetime import datetime, timedelta
 
 # PyTorch imports for Deep Learning model
 import torch
@@ -13,27 +21,18 @@ import torch.nn as nn
 
 plt.rcParams['font.family'] = 'DejaVu Sans'
 
-base_dir = os.path.dirname(os.getcwd())
+base_dir = os.getcwd()
 data_dir = os.path.join(base_dir, "data")
-model_dir = os.path.join(base_dir, "models")
+model_dir = os.path.join(base_dir, "model")
 
 RF_MODEL_PATH = os.path.join(model_dir, "rf_model.pkl")
 XGB_MODEL_PATH = os.path.join(model_dir, "xgb_model.pkl")
-CNN_MODEL_PATH = os.path.join(model_dir, "best_hybrid_cnn.pth")
-DATA_URL_RIVER = "https://raw.githubusercontent.com/yuqALL/wqd7012_groupwork/main/River_Water_Quality.csv"
-DATA_URL_COMBINED = "https://raw.githubusercontent.com/yuqALL/wqd7012_groupwork/main/Combined_dataset.csv"
-MODEL_URL_RF = "https://raw.githubusercontent.com/yuqALL/wqd7012_groupwork/main/rf_model.pkl"
-MODEL_URL_XGB = "https://raw.githubusercontent.com/yuqALL/wqd7012_groupwork/main/xgb_model.pkl"
-MODEL_URL_CNN = "https://raw.githubusercontent.com/yuqALL/wqd7012_groupwork/main/best_hybrid_cnn.pth"
-
-@st.cache_data
-def download_data():
-    if not os.path.exists("River_Water_Quality.csv"):
-        with st.spinner("Downloading River_Water_Quality.csv..."):
-            urllib.request.urlretrieve(DATA_URL_RIVER, "River_Water_Quality.csv")
-    if not os.path.exists("Combined_dataset.csv"):
-        with st.spinner("Downloading Combined_dataset.csv..."):
-            urllib.request.urlretrieve(DATA_URL_COMBINED, "Combined_dataset.csv")
+NN_MODEL_PATH = os.path.join(model_dir, "best_nn_model.pth") 
+HYBRID_NN_XGB_MODEL_PATH = os.path.join(model_dir, "best_hybrid_nn_xgb_model.pkl")
+MODEL_URL_RF = "https://raw.githubusercontent.com/yuqALL/wqd7012_groupwork/main/model/rf_model.pkl"
+MODEL_URL_XGB = "https://raw.githubusercontent.com/yuqALL/wqd7012_groupwork/main/model/xgb_model.pkl"
+MODEL_URL_NN = "https://raw.githubusercontent.com/yuqALL/wqd7012_groupwork/main/model/best_nn_model.pth"
+MODEL_URL_HYBRID_NN_XGB = "https://raw.githubusercontent.com/yuqALL/wqd7012_groupwork/main/model/best_hybrid_nn_xgb_model.pkl"
 
 def download_models():
     success = True
@@ -51,116 +50,86 @@ def download_models():
         except Exception as e:
             st.warning(f"Failed to download XGB model: {e}")
             success = False
-    if not os.path.exists(CNN_MODEL_PATH):
+    if not os.path.exists(NN_MODEL_PATH):
         try:
-            with st.spinner("Downloading Hybrid CNN model..."):
-                urllib.request.urlretrieve(MODEL_URL_CNN, CNN_MODEL_PATH)
+            with st.spinner("Downloading Hybrid NN model..."):
+                urllib.request.urlretrieve(MODEL_URL_NN, NN_MODEL_PATH)
         except Exception as e:
-            st.warning(f"Failed to download CNN model: {e}")
+            st.warning(f"Failed to download Hybrid NN model: {e}")
+    if not os.path.exists(HYBRID_NN_XGB_MODEL_PATH):
+        try:
+            with st.spinner("Downloading Hybrid NN-XGBoost model..."):
+                urllib.request.urlretrieve(MODEL_URL_HYBRID_NN_XGB, HYBRID_NN_XGB_MODEL_PATH)
+        except Exception as e:
+            st.warning(f"Failed to download Hybrid NN-XGBoost model: {e}")
             success = False
     return success
 
-@st.cache_data
-def load_raw_data():
-    download_data()
-    df = pd.read_csv("River_Water_Quality.csv")
-    return df
-
-@st.cache_data
-def load_ml_data():
-    download_data()
-    df = pd.read_csv("River_Water_Quality.csv")
-    df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
-    df = df.dropna(subset=['Date'])
-    df = df[(df['Date'].dt.year >= 2000) & (df['Date'].dt.year <= 2023)]
-    return df
-
-@st.cache_data
-def load_sample_data():
-    df = load_ml_data()
-    df_sample = df.sample(n=min(10000, len(df)), random_state=42)
-    return df, df_sample
-
-def prepare_ml_data(df):
-    df_cleaned = df.copy()
-    df_cleaned['Date'] = pd.to_datetime(df_cleaned['Date'])
-    df_cleaned['Year'] = df_cleaned['Date'].dt.year
-    df_cleaned['Month'] = df_cleaned['Date'].dt.month
-    cols_to_drop = ['Date', 'CCME_WQI', 'Area']
-    df_cleaned = df_cleaned.drop(columns=[col for col in cols_to_drop if col in df_cleaned.columns])
-    df_cleaned = df_cleaned.dropna(subset=['CCME_Values'])
-    return df_cleaned
-
+@st.cache_resource
 def load_rf_model():
     with open(RF_MODEL_PATH, 'rb') as f:
         pipeline = pickle.load(f)
     return pipeline
 
+@st.cache_resource
 def load_xgb_model():
     with open(XGB_MODEL_PATH, 'rb') as f:
         pipeline = pickle.load(f)
+
+    pipeline.named_steps['regressor'].set_params(n_jobs=1, predictor='cpu_predictor')
     return pipeline
 
-# Define the CNN model architecture (matching the trained model)
-class WaterQualityCNN(nn.Module):
+def generate_random_timestamps(n):
+    start_date = datetime(2023, 1, 1)
+    end_date = datetime.now()
+
+    total_seconds = int((end_date - start_date).total_seconds())
+    random_seconds = np.random.randint(0, total_seconds, n)
+    timestamps = [start_date + timedelta(seconds=int(sec)) for sec in random_seconds]
+
+    return pd.to_datetime(timestamps)
+
+# Neural Network Architecture for Hybrid NN-XGBoost model
+class WaterQualityNN(nn.Module):
     def __init__(self, num_features):
-        super(WaterQualityCNN, self).__init__()
-        # Convolutional layer to extract features
-        self.conv1 = nn.Conv1d(in_channels=1, out_channels=32, kernel_size=3, padding=1)
-        self.bn1 = nn.BatchNorm1d(32)
+        super(WaterQualityNN, self).__init__()
 
-        self.conv2 = nn.Conv1d(in_channels=32, out_channels=64, kernel_size=3, padding=1)
-        self.bn2 = nn.BatchNorm1d(64)
-        self.relu = nn.ReLU()
+        self.feature_extractor = nn.Sequential(
+            nn.Linear(num_features, 128),
+            nn.BatchNorm1d(128),
+            nn.ReLU(),
+            nn.Dropout(0.2),
 
-        self.dropout = nn.Dropout(0.3)
+            nn.Linear(128, 64),
+            nn.BatchNorm1d(64),
+            nn.ReLU(),
+            nn.Dropout(0.2)
+        )
 
-        # Reduces feature dimension
-        self.pool = nn.AdaptiveAvgPool1d(1)
-        self.flatten = nn.Flatten()
-
-        # Feature extraction layer (Extracts 32D high-level features)
-        self.fc_features = nn.Linear(64, 32)
-
-        # Regression output layer
-        self.fc_output = nn.Linear(32, 1)
+        self.regressor = nn.Linear(64, 1)
 
     def forward(self, x):
-        x = self.conv1(x)
-        x = self.bn1(x)
-        x = self.relu(x)
-
-        x = self.conv2(x)
-        x = self.bn2(x)
-        x = self.relu(x)
-
-        # Global pooling
-        x = self.pool(x)
-
-        # Flatten
-        x = self.flatten(x)
-
-        # Feature extraction
-        features = self.dropout(self.relu(self.fc_features(x)))
-
-        # Output
-        output = self.fc_output(features)
+        features = self.feature_extractor(x)
+        output = self.regressor(features)
 
         return output, features
 
-def load_cnn_model():
-    # Number of features: Ammonia, BOD, Dissolved Oxygen, Orthophosphate, pH, Temperature, Nitrogen, Nitrate
-    # Note: Year and Month were excluded during training
-    num_features = 8
-    model = WaterQualityCNN(num_features)
-    try:
-        model.load_state_dict(torch.load(CNN_MODEL_PATH, map_location=torch.device('cpu'), weights_only=True))
-        model.eval()
-        return model
-    
-    except Exception as e:
-        st.warning(f"Failed to load CNN model: {str(e)}")
-        return None
+@st.cache_resource
+def load_hybrid_models():
+
+    # Load saved NN model
+    state_dict = torch.load(NN_MODEL_PATH, map_location=torch.device('cpu'))
+    num_features = state_dict['feature_extractor.0.weight'].shape[1]
+
+    nn_model = WaterQualityNN(num_features)
+    nn_model.load_state_dict(state_dict)
+    nn_model.eval()
+
+    # Load Hybrid NN-XGBoost model
+    with open(HYBRID_NN_XGB_MODEL_PATH, 'rb') as f:
+        hybrid_nn_xgb_model = pickle.load(f)
+
+    return nn_model, hybrid_nn_xgb_model
 
 def main():
     st.set_page_config(
@@ -174,27 +143,25 @@ def main():
         st.header("🔧 Model Selection")
         model_choice = st.radio(
             "Select Model",
-            ["🌲 Random Forest", "🚀 XGBoost", "🧠 Hybrid CNN-XGBoost"],
-            help="Choose between Random Forest, XGBoost, or Hybrid CNN-XGBoost model"
+            ["🌲 Random Forest", "🚀 XGBoost", "🧠 Hybrid NN-XGBoost"],
+            help="Choose between Random Forest, XGBoost, or Hybrid NN-XGBoost model"
         )
 
     # ============================================
     # APPLICATION DEVELOPMENT
     # ============================================
 
-    st.header("Water Quality Index Prediction")
+    st.header("River Water Quality Prediction")
 
     st.markdown("""
-    This interactive application allows you to predict the CCME Water Quality Index based on various water quality parameters.
-    Adjust the parameters below using the sliders and click the prediction button to generate the water quality index estimate.
+    This application allows you to predict the Water Quality Index (WQI) based on uploaded water quality data.
     """)
 
-    df = load_raw_data()
     download_models()
 
     pipeline = None
-    cnn_model = None
-    use_hybrid_xgb = False
+    nn_model = None
+    use_hybrid_nn_xgb = False
 
     if model_choice == "🌲 Random Forest":
         if os.path.exists(RF_MODEL_PATH):
@@ -205,7 +172,8 @@ def main():
                 st.sidebar.error(f"❌ Failed to load RF model: {str(e)}")
                 st.stop()
         else:
-            st.sidebar.error("❌ RF model file not found on GitHub!")
+            st.sidebar.error("❌ RF model file not found on GitHub...")
+
     elif model_choice == "🚀 XGBoost":
         if os.path.exists(XGB_MODEL_PATH):
             try:
@@ -215,19 +183,19 @@ def main():
                 st.sidebar.error(f"❌ Failed to load XGBoost model: {str(e)}")
                 st.stop()
         else:
-            st.sidebar.error("❌ XGB model file not found on GitHub!")
+            st.sidebar.error("❌ XGB model file not found on GitHub...")
             st.stop()
     else:
-        use_hybrid_xgb = True
-        if os.path.exists(CNN_MODEL_PATH):
+        use_hybrid_nn_xgb = True
+        if os.path.exists(HYBRID_NN_XGB_MODEL_PATH):
             try:
-                cnn_model = load_cnn_model()
-                st.sidebar.success("✅ Loaded Hybrid CNN model")
+                nn_model, hybrid_nn_xgb_model = load_hybrid_models()
+                st.sidebar.success("✅ Loaded Hybrid NN-XGBoost model")
             except Exception as e:
-                st.sidebar.error(f"❌ Failed to load Hybrid CNN model: {str(e)}")
+                st.sidebar.error(f"❌ Failed to load Hybrid NN-XGBoost model: {str(e)}")
                 st.stop()
         else:
-            st.sidebar.error("❌ Hybrid CNN model file not found on GitHub!")
+            st.sidebar.error("❌ Hybrid NN-XGBoost model file not found on GitHub...")
             st.stop()
 
     st.markdown("### Input Water Quality Parameters")
@@ -236,12 +204,6 @@ def main():
     **Expected Input Format:**
     Upload a CSV or Excel file with the following columns:
     """)
-
-    format_columns = [
-        'Dissolved Oxygen (mg/L)', 'Nitrate (mg/L)', 'Nitrogen (mg/L)',
-        'Ammonia (mg/L)', 'BOD (mg/L)', 'Orthophosphate (mg/L)', 'pH', 'Temperature'
-    ]
-    st.code(" | ".join(format_columns))
 
     format_table = pd.DataFrame({
         'Column Name': ['Dissolved Oxygen (mg/L)', 'Nitrate (mg/L)', 'Nitrogen (mg/L)',
@@ -260,11 +222,22 @@ def main():
     })
     st.dataframe(format_table, width='stretch')
 
-    sample_csv_path = os.path.join(os.path.dirname(__file__), 'sample_input.csv')
+    sample_csv_path = os.path.join(data_dir, "sample_input.csv")
     if os.path.exists(sample_csv_path):
         sample_preview = pd.read_csv(sample_csv_path, nrows=3)
-        st.markdown("**Example CSV content (first 3 rows from sample_input.csv):**")
-        st.code(sample_preview.to_csv(index=False, sep='|'))
+
+        st.markdown("**Example Input Format (First 3 rows from sample_input.csv):**")
+
+        st.dataframe(sample_preview.style.format({
+            'Dissolved Oxygen (mg/L)': '{:.2f}',
+            'Nitrate (mg/L)': '{:.2f}',
+            'Nitrogen (mg/L)': '{:.2f}',
+            'Ammonia (mg/L)': '{:.2f}',
+            'BOD (mg/L)': '{:.2f}',
+            'Orthophosphate (mg/L)': '{:.2f}',
+            'pH': '{:.2f}',
+            'Temperature': '{:.2f}'
+        }), width='stretch')
 
         with open(sample_csv_path, 'rb') as f:
             st.download_button(
@@ -275,11 +248,17 @@ def main():
             )
     else:
         st.markdown("**Example CSV content:**")
-        st.code("""Dissolved Oxygen (mg/L) | Nitrate (mg/L) | Nitrogen (mg/L) | Ammonia (mg/L) | BOD (mg/L) | Orthophosphate (mg/L) | pH | Temperature
-8.5 | 5.2 | 2.1 | 0.3 | 4.5 | 0.1 | 7.5 | 15.0
-7.2 | 6.8 | 1.8 | 0.5 | 6.2 | 0.15 | 7.8 | 18.5""")
-
-    if st.session_state.pop('_clear_predict', False):
+        sample_df = pd.DataFrame({
+            'Dissolved Oxygen (mg/L)': [8.5, 7.2],
+            'Nitrate (mg/L)': [5.2, 6.8],
+            'Nitrogen (mg/L)': [2.1, 1.8],
+            'Ammonia (mg/L)': [0.3, 0.5],
+            'BOD (mg/L)': [4.5, 6.2],
+            'Orthophosphate (mg/L)': [0.1, 0.15],
+            'pH': [7.5, 7.8],
+            'Temperature': [15.0, 18.5]
+        })
+        st.dataframe(sample_df, width='stretch')
         st.session_state.prediction_result_df = None
         st.session_state.prediction_display_df = None
         st.session_state.last_prediction_done = False
@@ -293,7 +272,7 @@ def main():
     with col_up:
         uploaded_file = st.file_uploader(
             "Upload CSV or Excel file",
-            type=["csv", "xlsx", "xls"],
+            type=["csv", "xlsx"],
             key=f"predict_upload_{st.session_state.get('pred_upload_key', 0)}",
             label_visibility="collapsed"
         )
@@ -308,14 +287,27 @@ def main():
     file_name = None
     if use_sample:
         if os.path.exists(sample_csv_path):
-            st.session_state._clear_predict = True
+            pred_df = pd.read_csv(sample_csv_path)
+            file_name = "sample_input.csv"
+            
+            st.session_state.pred_input_df = pred_df
+            st.session_state.pred_input_name = file_name
+            st.session_state.sample_loaded = True
+
+            st.session_state.prediction_result_df = None
+            st.session_state.prediction_display_df = None
+            st.session_state.last_prediction_done = False
+
             st.rerun()
         else:
             st.warning("Sample input file not found.")
+
     elif uploaded_file is not None:
         try:
+
             if uploaded_file.name.endswith('.csv'):
                 pred_df = pd.read_csv(uploaded_file)
+
             else:
                 pred_df = pd.read_excel(uploaded_file)
             file_name = uploaded_file.name
@@ -325,14 +317,18 @@ def main():
             st.session_state.prediction_display_df = None
             st.session_state.last_prediction_done = False
             st.session_state.pop('dash_df', None)
+
         except Exception as e:
             st.error(f"Error processing file: {str(e)}")
+
     elif st.session_state.get('sample_loaded'):
+
         if os.path.exists(sample_csv_path):
             pred_df = pd.read_csv(sample_csv_path)
         file_name = "sample_input.csv"
         st.session_state.pred_input_df = pred_df
         st.session_state.pred_input_name = file_name
+
     else:
         pred_df = st.session_state.get('pred_input_df')
         file_name = st.session_state.get('pred_input_name')
@@ -371,20 +367,20 @@ def main():
                     table_placeholder = st.empty()
                     all_predictions = []
 
-                    cnn_means = None
-                    cnn_stds = None
-                    if use_hybrid_xgb and cnn_model is not None:
-                        cnn_means = torch.tensor(
+                    nn_means = None
+                    nn_stds = None
+                    if use_hybrid_nn_xgb and nn_model is not None:
+                        nn_means = torch.tensor(
                             [0.45897955, 3.19264486, 10.03764867, 0.3192486,
                              7.76286298, 11.03018225, 4.72756508, 4.56060162],
                             dtype=torch.float32
                         )
-                        cnn_stds = torch.tensor(
+                        nn_stds = torch.tensor(
                             [3.99296878, 10.60728528, 2.07854648, 1.2832782,
                              0.48097796, 3.99207888, 4.6257997, 4.78472973],
                             dtype=torch.float32
                         )
-                        cnn_model.eval()
+                        nn_model.eval()
 
                     def get_contamination_level(wqi):
                         if wqi >= 90:
@@ -403,22 +399,23 @@ def main():
                         end = min(start + batch_size, total_rows)
                         chunk = input_df.iloc[start:end]
 
-                        if use_hybrid_xgb and cnn_model is not None:
-                            cnn_features = chunk[[
+                        if use_hybrid_nn_xgb and nn_model is not None:
+                            nn_features = chunk[[
                                 'Ammonia (mg/L)', 'BOD (mg/L)',
                                 'Dissolved Oxygen (mg/L)', 'Orthophosphate (mg/L)',
                                 'pH', 'Temperature',
                                 'Nitrogen (mg/L)', 'Nitrate (mg/L)'
                             ]].values.astype(np.float32)
 
-                            input_tensor = torch.tensor(cnn_features, dtype=torch.float32)
-                            input_tensor = (input_tensor - cnn_means) / cnn_stds
-                            input_tensor = input_tensor.unsqueeze(1)
+                            nn_features = (nn_features - nn_means.numpy()) / nn_stds.numpy()
+                            input_tensor = torch.tensor(nn_features, dtype=torch.float32)
 
                             with torch.no_grad():
-                                _, cnn_feature_vectors = cnn_model(input_tensor)
-                            feature_means = cnn_feature_vectors.mean(dim=1).numpy()
-                            chunk_preds = (60.0 + feature_means * 2.0).tolist()
+                                _, extracted_features = nn_model(input_tensor)
+
+                            features_np = extracted_features.numpy()
+                            chunk_preds = hybrid_nn_xgb_model.predict(features_np).tolist()
+  
                         elif pipeline is not None:
                             batch_data = pd.DataFrame({
                                 'Country': ['Canada'] * len(chunk),
@@ -443,7 +440,7 @@ def main():
                         )
 
                         partial_df = input_df.iloc[:end].copy()
-                        partial_df['Timestamp'] = pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')
+                        partial_df['Timestamp'] = generate_random_timestamps(len(partial_df))
                         partial_df['CCME_WQI'] = all_predictions
                         partial_df['Contamination Level'] = partial_df['CCME_WQI'].apply(get_contamination_level)
                         partial_display = partial_df[[
@@ -457,7 +454,7 @@ def main():
                     progress_bar.progress(1.0, text=f"Completed: {total_rows}/{total_rows} records")
 
                     result_df = input_df.copy()
-                    result_df['Timestamp'] = pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')
+                    result_df['Timestamp'] = generate_random_timestamps(len(result_df))
                     result_df['CCME_WQI'] = all_predictions
                     result_df['Contamination Level'] = result_df['CCME_WQI'].apply(get_contamination_level)
                     display_df = result_df[[
@@ -472,6 +469,7 @@ def main():
                     st.session_state.last_prediction_done = True
 
                     table_placeholder.empty()
+
         except Exception as e:
             st.error(f"Error processing file: {str(e)}")
     else:
@@ -485,7 +483,7 @@ def main():
         model_suffix_map = {
             "🌲 Random Forest": "rf",
             "🚀 XGBoost": "xgb",
-            "🧠 Hybrid CNN-XGBoost": "hybrid"
+            "🧠 Hybrid NN-XGBoost": "hybrid"
         }
         model_suffix = model_suffix_map.get(saved_model, "unknown")
 
@@ -517,14 +515,14 @@ def main():
         desc = desc_map.get(mode_category, "No data available")
         st.markdown(f"""
         <div style="background-color: {color}; padding: 25px; border-radius: 12px; text-align: center;">
-            <h2 style="color: white; margin: 0;">Average CCME WQI: {avg_wqi:.2f}</h2>
+            <h2 style="color: white; margin: 0;">Average WQI: {avg_wqi:.2f}</h2>
             <h3 style="color: white; margin: 10px 0 0 0;">Dominant Level: {mode_category}</h3>
             <p style="color: white; margin: 15px 0 0 0; font-size: 14px;">{desc}</p>
         </div>
         """, unsafe_allow_html=True)
 
     st.markdown("---")
-    st.markdown("### Water Quality Index Categories (CCME WQI)")
+    st.markdown("### Water Contamination Levels Categories")
 
     wqi_table = pd.DataFrame({
         'WQI Range': ['90-100', '80-89', '60-79', '45-59', '0-44'],
@@ -548,15 +546,15 @@ def main():
 
     st.markdown("---")
     st.markdown('<a id="section4-2"></a>', unsafe_allow_html=True)
-    st.subheader("Water Quality Dashboard")
+    st.subheader("Water Quality Monitoring and Contamination Assessment Dashboard")
 
     st.markdown("""
-    Upload historical prediction data (CSV with **Timestamp** column) to visualize trends and contamination level rates.
+    Upload prediction data to visualize water quality trends and contamination levels.
     The expected format is the output CSV from the prediction above.
     """)
 
-    demo_csv_path = os.path.join(os.path.dirname(__file__), 'demo_dashboard.csv')
-    st.markdown("**Upload Historical Data for Dashboard**")
+    demo_csv_path = os.path.join(data_dir, "demo_dashboard.csv")
+    st.markdown("**Upload Data*")
 
     if st.session_state.pop('_clear_dashboard', False):
         st.session_state.prediction_result_df = None
@@ -630,23 +628,71 @@ def main():
 
                 if available_params:
                     col_a, col_b = st.columns(2)
+
                     with col_a:
                         selected_param = st.selectbox("Select Parameter", available_params)
+
                     with col_b:
                         period = st.selectbox("Select Time Period", ["Weekly", "Monthly", "Yearly"])
 
-                    if period == "Weekly":
-                        dash_df['Period'] = dash_df['Timestamp'].dt.to_period('W').dt.start_time
-                    elif period == "Monthly":
-                        dash_df['Period'] = dash_df['Timestamp'].dt.to_period('M').dt.start_time
+                    if period in ["Weekly", "Monthly"]:
+                        selected_year = st.selectbox("Select Year", sorted(dash_df['Timestamp'].dt.year.unique()), key="trend_year")
+                        trend_df = dash_df[dash_df['Timestamp'].dt.year == selected_year].copy()
+                        
                     else:
-                        dash_df['Period'] = dash_df['Timestamp'].dt.to_period('Y').dt.start_time
+                        trend_df = dash_df.copy()
 
-                    avg_df = dash_df.groupby('Period')[selected_param].mean().reset_index()
-                    avg_df['Period'] = avg_df['Period'].dt.strftime('%Y-%m-%d')
+                    if period == "Weekly":
+                        month_options = {"January": 1, "February": 2, "March": 3, "April": 4,
+                                         "May": 5, "June": 6, "July": 7, "August": 8,
+                                         "September": 9, "October": 10, "November": 11, "December": 12} 
+                        
+                        selected_month_name = st.selectbox("Select Month", list(month_options.keys()), key="trend_month")
+                        selected_month = month_options[selected_month_name]
+
+                        trend_df = trend_df[trend_df['Timestamp'].dt.month == selected_month]
+                        trend_df['Period'] = trend_df['Timestamp'].dt.to_period('W').dt.start_time
+
+                    elif period == "Monthly":
+                        trend_df['Period'] = trend_df['Timestamp'].dt.to_period('M').dt.start_time
+
+                    else:
+                        trend_df['Period'] = trend_df['Timestamp'].dt.to_period('Y').dt.start_time
+
+                    avg_df = trend_df.groupby('Period')[selected_param].mean().reset_index()
+
+                    if period == "Weekly":
+                        weekly_labels = []
+
+                        for start_date in avg_df['Period']:
+                            end_date = start_date + pd.Timedelta(days=6)
+                            label = (start_date.strftime('%d %b') + ' - ' + end_date.strftime('%d %b'))
+                            weekly_labels.append(label)
+
+                        avg_df['Label'] = weekly_labels
+
+                    elif period == "Monthly":
+                        avg_df['Label'] = avg_df['Period'].dt.strftime('%b')
+                        month_order = ['Jan', 'Feb', 'Mar', 'Apr',
+                                       'May', 'Jun', 'Jul', 'Aug',
+                                       'Sep', 'Oct', 'Nov', 'Dec']
+                        
+                        avg_df['Label'] = pd.Categorical(avg_df['Label'], categories=month_order, ordered=True)
+                        avg_df = avg_df.sort_values('Label')
+
+                    else:
+                        avg_df['Label'] = avg_df['Period'].dt.strftime('%Y')
 
                     st.markdown(f"**Average {selected_param} ({period}):**")
-                    st.line_chart(avg_df.set_index('Period'), y=selected_param, width='stretch')
+
+                    line_chart = alt.Chart(avg_df).mark_line(point=True).encode(
+                        x=alt.X('Label:N', title=period, sort=month_order if period == "Monthly" else None, axis=alt.Axis(labelAngle=0)),
+                        y=alt.Y(f'{selected_param}:Q', title=selected_param),
+                        tooltip=['Label', selected_param]
+                    ).properties(height=400)
+
+                    st.altair_chart(line_chart, width='stretch')
+                   
                 else:
                     st.info("No water quality parameter columns found in the uploaded file.")
 
@@ -656,12 +702,12 @@ def main():
                 model_contam_map = {
                     "🌲 Random Forest": 'Contamination_RF',
                     "🚀 XGBoost": 'Contamination_XGB',
-                    "🧠 Hybrid CNN-XGBoost": 'Contamination_Hybrid',
+                    "🧠 Hybrid NN-XGBoost": 'Contamination_Hybrid',
                 }
                 model_wqi_map = {
                     "🌲 Random Forest": 'CCME_WQI_RF',
                     "🚀 XGBoost": 'CCME_WQI_XGB',
-                    "🧠 Hybrid CNN-XGBoost": 'CCME_WQI_Hybrid',
+                    "🧠 Hybrid NN-XGBoost": 'CCME_WQI_Hybrid',
                 }
                 pref = model_contam_map.get(model_choice, 'Contamination_RF')
                 wqi_col = model_wqi_map.get(model_choice, 'CCME_WQI_RF')
@@ -681,59 +727,160 @@ def main():
                 display_wqi = wqi_col if wqi_col in dash_df.columns else ('CCME_WQI' if 'CCME_WQI' in dash_df.columns else None)
 
                 if contam_col:
-                    col_c, col_d = st.columns(2)
-                    with col_c:
-                        rate_period = st.selectbox(
-                            "Select Period for Contamination Rates",
-                            ["Weekly", "Monthly", "Yearly"],
-                            key="rate_period"
-                        )
+                    rate_period = st.selectbox("Select Period for Contamination Rates", ["Weekly", "Monthly", "Yearly"], key="rate_period")
 
                     level_order = ["Excellent", "Good", "Fair", "Marginal", "Poor"]
                     level_colors = ["#22c55e", "#84cc16", "#eab308", "#f97316", "#ef4444"]
 
-                    if rate_period == "Weekly":
-                        dash_df['RatePeriod'] = dash_df['Timestamp'].dt.to_period('W').dt.start_time
-                    elif rate_period == "Monthly":
-                        dash_df['RatePeriod'] = dash_df['Timestamp'].dt.to_period('M').dt.start_time
-                    else:
-                        dash_df['RatePeriod'] = dash_df['Timestamp'].dt.to_period('Y').dt.start_time
+                    # Weekly and Monthly require year filtering
+                    if rate_period in ["Weekly", "Monthly"]:
 
-                    rate_df = dash_df.groupby('RatePeriod')[contam_col].value_counts().unstack(fill_value=0)
+                        selected_year = st.selectbox("Select Year", sorted(dash_df['Timestamp'].dt.year.unique()), key="selected_year")
+                        filtered_df = dash_df[dash_df['Timestamp'].dt.year == selected_year].copy()
+
+                    else:
+                        filtered_df = dash_df.copy()
+
+                    if rate_period == "Weekly":
+                        month_options = {"January": 1, "February": 2, "March": 3, "April": 4, "May": 5, "June": 6,
+                                         "July": 7, "August": 8, "September": 9, "October": 10, "November": 11, "December": 12}
+
+                        selected_month_name = st.selectbox("Select Month", list(month_options.keys()), key="selected_month")
+                        selected_month = month_options[selected_month_name]
+
+                        filtered_df = filtered_df[filtered_df['Timestamp'].dt.month == selected_month]
+                        filtered_df['RatePeriod'] = filtered_df['Timestamp'].dt.to_period('W').dt.start_time
+
+                        x_title = "Week"
+            
+                    elif rate_period == "Monthly":
+                        filtered_df['RatePeriod'] = filtered_df['Timestamp'].dt.to_period('M').dt.start_time
+                        x_title = "Month"
+
+                    else:
+                        filtered_df['RatePeriod'] = filtered_df['Timestamp'].dt.to_period('Y').dt.start_time
+                        x_title = "Year"
+
+                    rate_df = filtered_df.groupby('RatePeriod')[contam_col].value_counts().unstack(fill_value=0)
 
                     for level in level_order:
                         if level not in rate_df.columns:
                             rate_df[level] = 0
-                    rate_df = rate_df[level_order]
 
+                    rate_df = rate_df[level_order]
                     rate_total = rate_df.sum(axis=1)
                     rate_pct = rate_df.div(rate_total, axis=0) * 100
-                    rate_pct.index = rate_pct.index.strftime('%Y-%m-%d')
+
+                    if rate_period == "Weekly":
+                        weekly_ranges = []
+
+                        for start_date in pd.to_datetime(rate_pct.index):
+                            end_date = start_date + pd.Timedelta(days=6)
+
+                            label = (start_date.strftime('%d %b') + ' - ' + end_date.strftime('%d %b'))
+                            weekly_ranges.append(label)
+
+                        rate_pct.index = weekly_ranges
+                        rate_pct.index.name = "RatePeriod"
+
+                    elif rate_period == "Monthly":
+                        month_order = ['Jan', 'Feb', 'Mar', 'Apr',
+                                       'May', 'Jun', 'Jul', 'Aug',
+                                       'Sep', 'Oct', 'Nov', 'Dec']
+                        rate_pct.index = pd.to_datetime(rate_pct.index).strftime('%b')
+
+                        rate_pct = rate_pct.reindex(month_order)
+                        rate_pct = rate_pct.dropna(how='all')
+
+                    else:
+                        rate_pct.index = pd.to_datetime(rate_pct.index).strftime('%Y')
 
                     st.markdown(f"**Contamination Level Distribution ({rate_period}):**")
-                    rate_melt = rate_pct.reset_index().melt(
-                        id_vars='RatePeriod', var_name='Level', value_name='Percentage'
-                    )
+
+                    rate_pct_reset = rate_pct.reset_index()
+                    rate_pct_reset['SortOrder'] = range(len(rate_pct_reset))
+                    rate_melt = rate_pct_reset.melt(id_vars=['RatePeriod', 'SortOrder'], var_name='Level', value_name='Percentage')
                     rate_melt['Level'] = pd.Categorical(rate_melt['Level'], categories=level_order, ordered=True)
-                    bar_chart = alt.Chart(rate_melt).mark_bar().encode(
-                        x=alt.X('RatePeriod:T', title='Period', axis=alt.Axis(labelAngle=-45)),
-                        y=alt.Y('Percentage:Q', title='Percentage'),
-                        xOffset=alt.XOffset('Level:N'),
+
+                    if rate_period == "Weekly":
+                        chart = alt.Chart(rate_melt).mark_bar().encode(
+                        x=alt.X('RatePeriod:N', title=x_title, sort=alt.SortField(field='SortOrder'), axis=alt.Axis(labelAngle=0)),
+                        y=alt.Y('Percentage:Q', stack='normalize', title='Percentage'),
                         color=alt.Color('Level:N', scale=alt.Scale(domain=level_order, range=level_colors),
                                         legend=alt.Legend(title='Contamination Level')),
-                    ).properties(height=350)
-                    st.altair_chart(bar_chart, width='stretch')
+                    ).properties(height=400)
+                        
+                    else:
+
+                        if rate_period == "Monthly":
+                            sort_order = ['Jan', 'Feb', 'Mar', 'Apr',
+                                          'May', 'Jun', 'Jul', 'Aug',
+                                          'Sep', 'Oct', 'Nov', 'Dec']
+                            
+                        elif rate_period == "Yearly":
+                            sort_order = sorted(rate_melt['RatePeriod'].unique())
+                        
+                        else:
+                            sort_order = None
+
+                        chart = alt.Chart(rate_melt).mark_bar().encode(
+                            x=alt.X('RatePeriod:N', title=x_title, sort=sort_order, axis=alt.Axis(labelAngle=0)),
+                            y=alt.Y('Percentage:Q', title='Percentage'),
+                            xOffset = alt.XOffset('Level:N'),
+                            color=alt.Color('Level:N', scale=alt.Scale(domain=level_order, range=level_colors),
+                                            legend=alt.Legend(title='Contamination Level')),
+                        ).properties(height=350)
+
+                    st.altair_chart(chart, width='stretch')
 
                     st.markdown("**Level Distribution Summary:**")
                     col_e, col_f = st.columns(2)
+
+                    summary_count_df = rate_df.copy()
+                    summary_pct_df = rate_pct.copy()
+
+                    if rate_period == "Weekly":
+                        weekly_ranges = []
+
+                        for start_date in pd.to_datetime(summary_count_df.index):
+                            end_date = start_date + pd.Timedelta(days=6)
+                            label = (start_date.strftime('%d %b') + ' - ' + end_date.strftime('%d %b'))
+                            weekly_ranges.append(label)
+                        
+                        summary_count_df.index = weekly_ranges
+                        summary_pct_df.index = weekly_ranges
+
+                    elif rate_period == "Monthly":
+                        month_order = ['Jan', 'Feb', 'Mar', 'Apr',
+                                       'May', 'Jun', 'Jul', 'Aug',
+                                       'Sep', 'Oct', 'Nov', 'Dec']
+                        
+                        summary_count_df.index = pd.Index(pd.to_datetime(summary_count_df.index).strftime('%b'))
+                        summary_pct_df.index = summary_pct_df.index.astype(str)
+
+                        summary_count_df = summary_count_df.reindex(month_order).dropna(how='all')
+                        summary_pct_df = summary_pct_df.reindex(month_order).dropna(how='all')
+
+                    else:
+                        summary_count_df.index = pd.to_datetime(summary_count_df.index).strftime('%Y')
+                        summary_pct_df.index = pd.to_datetime(summary_pct_df.index).strftime('%Y')
+
+                    # Rename index column
+                    summary_count_df.index.name = "Period"
+                    summary_pct_df.index.name = "Period"
+
+                    summary_pct_df = summary_pct_df.round(1).astype(str) + '%'
+
                     with col_e:
                         st.markdown("**By Count:**")
-                        st.dataframe(rate_df, width='stretch')
+                        st.dataframe(summary_count_df, width='stretch')
+
                     with col_f:
                         st.markdown("**By Percentage:**")
-                        st.dataframe(rate_pct.round(1).astype(str) + '%', width='stretch')
+                        st.dataframe(summary_pct_df, width='stretch')
                 else:
                     st.info("No contamination level column found in the uploaded file.")
+
         except Exception as e:
             st.error(f"Error loading dashboard data: {str(e)}")
 

@@ -3,7 +3,6 @@
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
-
 if [ -d "venv" ]; then
     source venv/bin/activate
 else
@@ -14,7 +13,7 @@ else
 fi
 
 
-if [ -f "Combined_dataset.csv" ]; then
+if [ -f "data/Combined_dataset.csv" ]; then
     echo "[OK] Combined_dataset.csv exist"
 else
     echo "[WARNING] Combined_dataset.csv not exist"
