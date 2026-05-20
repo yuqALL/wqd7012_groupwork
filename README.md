@@ -1,14 +1,14 @@
-# River Water Quality Prediction System
+# River Water Quality Prediction and Contamination Detection System
 
 **Live Application:** https://wqd7012groupwork-3swgv8agwcxjdihcyapopj.streamlit.app/
 
-A machine learning-based water quality analysis and prediction application using the CCME Water Quality Index (WQI).
+A machine learning-based water quality analysis and prediction application using the Water Quality Index (WQI).
 
 ## Features
 
 - **Data Preprocessing**: Dataset overview, data filtering (2000-2023), and preprocessing pipeline
-- **Exploratory Data Analysis (EDA)**: Distribution analysis, time series trends, and correlation heatmaps
-- **Model Training**: Random Forest and XGBoost regression models for CCME WQI prediction
+- **Exploratory Data Analysis (EDA)**: Distribution analysis, time series trends, and correlation heatmap
+- **Model Training**: Random Forest, XGBoost and Hybrid NN-XGBoost regression models for Water Quality Index (WQI) prediction
 - **Interactive Prediction Tool**: Real-time water quality index prediction based on user inputs
 
 ## Project Structure
@@ -18,14 +18,17 @@ wqd7012_groupwork/
 ├── data/
 │   └── Combined_dataset.csv    # Preprocessed water quality dataset
 │   └── River_Water_Quality.csv # Raw water quality dataset
+│   └── River_Water_Quality_Final.csv # Processed water quality dataset
+│   └── sample_input.csv # Sample dataset used to make prediction
+│   └── demo_dashboard.csv # Sample dataset used to display dasboard
 ├── streamlit_app.py       # Main Streamlit application
 ├── run_streamlit.sh       # Script to run the application locally
 ├── requirements.txt       # Python dependencies
 ├── model/
 │   └── rf_model.pkl           # Trained Random Forest model
 │   └── xgb_model.pkl          # Trained XGBoost model
-│   └── best_hybrid_cnn.pth    # Trained Hybrid CNN-XGBoost model
-├── River_Water_Quality.csv # Raw water quality dataset
+│   └── best_hybrid_nn_model.pth    # Trained Neural Network (NN) model
+│   └── best_hybrid_nn_xgb_model.pth    # Trained Hybrid NN-XGBoost model
 ├── .streamlit/
 │   └── config.toml       # Streamlit configuration
 └── .gitattributes        # Git LFS configuration
@@ -90,19 +93,17 @@ The `Combined_dataset.csv` contains water quality measurements from 2000 to 2023
 
 | Model | RMSE | MAE | R2 Score |
 |-------|------|-----|----------|
-| Random Forest | 0.7123 | 0.1258 | 0.9971 |
-| XGBoost | 0.4914 | 0.1441 | 0.9986 |
+| Random Forest | 1.2111 | 0.5897 | 0.9917 |
+| XGBoost | 0.5190 | 0.2017 | 0.9985 |
+| NN-XGBoost | 0.7126 | 0.2976 | 0.9971 |
 
-Both models predict the CCME Water Quality Index (WQI) based on water quality parameters.
+The models predict the CCME Water Quality Index (WQI) based on water quality parameters.
 
 ## Navigation
 
 Use the sidebar menu to navigate between sections:
-1. **Data Preprocessing** (1.1, 1.2, 1.3)
-2. **Exploratory Data Analysis** (2.1, 2.2, 2.3)
-3. **Model Training** (3.1, 3.2, 3.3, 3.4)
-4. **Application Development** (4.1)
+1. **Application Development**
+
 ## License
 
 This project is for educational purposes as part of the WQD7012 course requirements.
-

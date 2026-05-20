@@ -40,6 +40,8 @@ from torch.utils.data import DataLoader, TensorDataset
 base_dir = os.path.dirname(os.getcwd())
 data_dir = os.path.join(base_dir, "data")
 models_dir = os.path.join(base_dir, "model")
+os.makedirs(data_dir, exist_ok=True)
+os.makedirs(models_dir, exist_ok=True)
 DATA_URL = "https://raw.githubusercontent.com/yuqALL/wqd7012_groupwork/main/data/River_Water_Quality.csv"
 
 class WaterQualityNN(nn.Module):
@@ -92,11 +94,6 @@ def prepare_ml_data(df):
     return df_baseline
 
 def train_rf_model(df_rf):
-
-    if os.path.exists(os.path.join(models_dir, "rf_model.pkl")):
-        print("✅ Trained Random Forest model found. Skipping training.")
-        return None
-
     exclude_cols = ['CCME_Values']
     feature_cols = [col for col in df_rf.columns if col not in exclude_cols]
 
@@ -104,28 +101,34 @@ def train_rf_model(df_rf):
     y_rf = df_rf['CCME_Values']
     print(f"Random Forest Input - X shape: {X_rf.shape} | y shape: {y_rf.shape}")
 
-    print("Building Random Forest pipeline...")
-    preprocessor = ColumnTransformer(
-        transformers=[
-            ('num', StandardScaler(), X_rf.columns)
-        ])
-
-    rf_pipeline = Pipeline(steps=[
-        ('preprocessor', preprocessor),
-        ('regressor', RandomForestRegressor(n_estimators=300, max_depth=6, max_features=0.8,
-                                            max_samples=0.8, random_state=42, n_jobs=-1))
-    ])
-
     X_train_rf, X_test_rf, y_train_rf, y_test_rf = train_test_split(X_rf, y_rf, test_size=0.2, random_state=42)
     print(f"Training Random Forest on {X_train_rf.shape[0]} samples...")
 
-    # Fit model
-    rf_pipeline.fit(X_train_rf, y_train_rf)
-    print("Saving Random Forest model...")
+    if os.path.exists(os.path.join(models_dir, "rf_model.pkl")):
+        print("✅ Trained Random Forest model found. Skipping training.")
+        with open(os.path.join(models_dir, "rf_model.pkl"), 'rb') as f:
+            rf_pipeline = pickle.load(f)
 
-    with open(os.path.join(models_dir, "rf_model.pkl"), 'wb') as f:
-        pickle.dump(rf_pipeline, f)
-    print(f"✅ Random Forest model saved to {os.path.join(models_dir, 'rf_model.pkl')}")
+    else:
+        print("Building Random Forest pipeline...")
+        preprocessor = ColumnTransformer(
+            transformers=[
+                ('num', StandardScaler(), X_rf.columns)
+            ])
+
+        rf_pipeline = Pipeline(steps=[
+            ('preprocessor', preprocessor),
+            ('regressor', RandomForestRegressor(n_estimators=300, max_depth=6, max_features=0.8,
+                                                max_samples=0.8, random_state=42, n_jobs=-1))
+        ])
+
+        # Fit model
+        rf_pipeline.fit(X_train_rf, y_train_rf)
+        print("Saving Random Forest model...")
+
+        with open(os.path.join(models_dir, "rf_model.pkl"), 'wb') as f:
+            pickle.dump(rf_pipeline, f)
+        print(f"✅ Random Forest model saved to {os.path.join(models_dir, 'rf_model.pkl')}")
 
     # Predict on test set
     y_pred_rf = rf_pipeline.predict(X_test_rf)
@@ -142,40 +145,42 @@ def train_rf_model(df_rf):
     return None
 
 def train_xgb_model(df_xgb):
-
-    if os.path.exists(os.path.join(models_dir, "xgb_model.pkl")):
-        print("✅ Trained XGBoost model found. Skipping training.")
-        return None
-
     exclude_cols = ['CCME_Values']
     feature_cols = [col for col in df_xgb.columns if col not in exclude_cols]
+
     X_xgb = df_xgb[feature_cols]
     y_xgb = df_xgb['CCME_Values']
     print(f"XGBoost Input - X shape: {X_xgb.shape} | y shape: {y_xgb.shape}")
 
-    print("Building XGBoost pipeline...")
-    preprocessor = ColumnTransformer(
-        transformers=[
-            ('num', StandardScaler(), X_xgb.columns)
-        ])
-
-    xgb_pipeline = Pipeline(steps=[
-        ('preprocessor', preprocessor),
-        ('regressor', XGBRegressor(n_estimators=300, max_depth=6, learning_rate=0.1,
-                                   subsample=0.8, colsample_bytree=0.8, random_state=42,
-                                   objective='reg:squarederror', n_jobs=-1))
-    ])
-
     X_train_xgb, X_test_xgb, y_train_xgb, y_test_xgb = train_test_split(X_xgb, y_xgb, test_size=0.2, random_state=42)
     print(f"Training XGBoost on {X_train_xgb.shape[0]} samples...")
 
-    # Fit model
-    xgb_pipeline.fit(X_train_xgb, y_train_xgb)
+    if os.path.exists(os.path.join(models_dir, "xgb_model.pkl")):
+        print("✅ Trained XGBoost model found. Skipping training.")
+        with open(os.path.join(models_dir, "xgb_model.pkl"), 'rb') as f:
+            xgb_pipeline = pickle.load(f)
 
-    print("Saving XGBoost model...")
-    with open(os.path.join(models_dir, "xgb_model.pkl"), 'wb') as f:
-        pickle.dump(xgb_pipeline, f)
-    print(f"✅ XGBoost model saved to {os.path.join(models_dir, 'xgb_model.pkl')}")
+    else:
+        print("Building XGBoost pipeline...")
+        preprocessor = ColumnTransformer(
+            transformers=[
+                ('num', StandardScaler(), X_xgb.columns)
+            ])
+
+        xgb_pipeline = Pipeline(steps=[
+            ('preprocessor', preprocessor),
+            ('regressor', XGBRegressor(n_estimators=300, max_depth=6, learning_rate=0.1,
+                                    subsample=0.8, colsample_bytree=0.8, random_state=42,
+                                    objective='reg:squarederror', n_jobs=-1))
+        ])
+
+        # Fit model
+        xgb_pipeline.fit(X_train_xgb, y_train_xgb)
+
+        print("Saving XGBoost model...")
+        with open(os.path.join(models_dir, "xgb_model.pkl"), 'wb') as f:
+            pickle.dump(xgb_pipeline, f)
+        print(f"✅ XGBoost model saved to {os.path.join(models_dir, 'xgb_model.pkl')}")
 
     # Predict on test set
     y_pred_xgb = xgb_pipeline.predict(X_test_xgb)
@@ -192,7 +197,6 @@ def train_xgb_model(df_xgb):
     return None
 
 def prepare_hybrid_nn_xgb_data(df_hybrid):
-    
     exclude_cols = ['CCME_Values']
     feature_cols = [col for col in df_hybrid.columns if col not in exclude_cols]
     
@@ -240,19 +244,19 @@ def train_hybrid_nn_xgb_model(df):
     print("Preparing data for Hybrid NN-XGBoost...")
     train_loader, train_loader_extract, val_loader, test_loader, y_train_final, y_test_hybrid = prepare_hybrid_nn_xgb_data(df)
     
-    print("Initializing Hybrid model...")
+    print("Initializing NN model...")
     sample_batch, _ = next(iter(train_loader))
     num_features = sample_batch.shape[1]
-    hybrid_nn_model = WaterQualityNN(num_features)
+    nn_model = WaterQualityNN(num_features)
 
-    if os.path.exists(os.path.join(models_dir, "best_hybrid_nn_model.pth")):
+    if os.path.exists(os.path.join(models_dir, "best_nn_model.pth")):
         print("✅ Trained NN model found.")
-        hybrid_nn_model.load_state_dict(torch.load(os.path.join(models_dir, "best_hybrid_nn_model.pth")))
+        nn_model.load_state_dict(torch.load(os.path.join(models_dir, "best_nn_model.pth")))
 
     else:
         # --- NN Training ---
         criterion = nn.MSELoss()
-        optimizer = optim.Adam(hybrid_nn_model.parameters(), lr=0.001)
+        optimizer = optim.Adam(nn_model.parameters(), lr=0.001)
         epochs = 50
         patience = 5
         best_val_loss = float('inf')
@@ -261,7 +265,7 @@ def train_hybrid_nn_xgb_model(df):
         print("Training NN model...")
         for epoch in range(epochs):
             # --- TRAINING ---
-            hybrid_nn_model.train()
+            nn_model.train()
             train_loss = 0.0
 
             train_progress = tqdm(train_loader, desc=f"Epoch {epoch+1}/{epochs} [Training]", leave=False)
@@ -269,7 +273,7 @@ def train_hybrid_nn_xgb_model(df):
             for batch_X, batch_y in train_progress:
                 optimizer.zero_grad()
 
-                outputs, _ = hybrid_nn_model(batch_X)
+                outputs, _ = nn_model(batch_X)
 
                 loss = criterion(outputs, batch_y)
                 loss.backward()
@@ -281,7 +285,7 @@ def train_hybrid_nn_xgb_model(df):
             avg_train_loss = train_loss / len(train_loader)
             
             # --- VALIDATION ---
-            hybrid_nn_model.eval()
+            nn_model.eval()
             val_loss = 0.0
 
             val_progress = tqdm(val_loader, desc=f"Epoch {epoch+1}/{epochs} [Validation]", leave=False)
@@ -289,7 +293,7 @@ def train_hybrid_nn_xgb_model(df):
             with torch.no_grad():
                 for val_X, val_y in val_progress:
 
-                    val_outputs, _ = hybrid_nn_model(val_X)
+                    val_outputs, _ = nn_model(val_X)
 
                     loss = criterion(val_outputs, val_y)
                     val_loss += loss.item()
@@ -310,7 +314,7 @@ def train_hybrid_nn_xgb_model(df):
 
                 counter = 0
 
-                torch.save(hybrid_nn_model.state_dict(), os.path.join(models_dir, "best_hybrid_nn_model.pth"))
+                torch.save(nn_model.state_dict(), os.path.join(models_dir, "best_nn_model.pth"))
                 print("Validation loss improved. Model saved.")
 
             else:
@@ -321,23 +325,23 @@ def train_hybrid_nn_xgb_model(df):
                     print("Early stopping triggered.")
                     break
     
-        print(f"✅ Hybrid NN model saved to {os.path.join(models_dir, 'best_hybrid_nn_model.pth')}")
+        print(f"✅ Hybrid NN model saved to {os.path.join(models_dir, 'best_nn_model.pth')}")
 
     print("Preparing data for Hybrid NN-XGBoost...")
 
     # Load hybrid model
-    hybrid_nn_model.load_state_dict(torch.load(os.path.join(models_dir, "best_hybrid_nn_model.pth")))
+    nn_model.load_state_dict(torch.load(os.path.join(models_dir, "best_nn_model.pth")))
     
     # Extract Features & Train XGBoost
     print("Extracting NN features...")
-    hybrid_nn_model.eval()
+    nn_model.eval()
 
     # -- Train Features --
     train_features_list = []
     
     with torch.no_grad():
         for batch_X, _ in tqdm(train_loader_extract, desc="Extracting Train NN Features"):
-            _, batch_features = hybrid_nn_model(batch_X)
+            _, batch_features = nn_model(batch_X)
 
             train_features_list.append(batch_features.cpu().numpy())
 
@@ -348,7 +352,7 @@ def train_hybrid_nn_xgb_model(df):
 
     with torch.no_grad():
         for batch_X, _ in tqdm(test_loader, desc="Extracting Test NN Features"):
-            _, batch_features = hybrid_nn_model(batch_X)
+            _, batch_features = nn_model(batch_X)
 
             test_features_list.append(batch_features.cpu().numpy())
 
@@ -356,23 +360,25 @@ def train_hybrid_nn_xgb_model(df):
 
     print(f"Extracted features shape: {test_hybrid_nn_xgb_features_np.shape}")
 
-    if os.path.exists(os.path.join(models_dir, "best_hybrid_xgb_model.pkl")):
+    if os.path.exists(os.path.join(models_dir, "best_hybrid_nn_xgb_model.pkl")):
         print("✅ Trained Hybrid XGBoost model found. Skipping training.")
-        return None
-   
-    # Train Hybrid NN-XGBoost Regressor
-    print("Training Hybrid NN-XGBoost: ")
+        with open(os.path.join(models_dir, "best_hybrid_nn_xgb_model.pkl"), 'rb') as f:
+            hybrid_nn_xgb_model = pickle.load(f)
+        
+    else:
+        # Train Hybrid NN-XGBoost Regressor
+        print("Training Hybrid NN-XGBoost: ")
 
-    hybrid_nn_xgb_model = XGBRegressor(n_estimators=300, max_depth=6, learning_rate=0.1, 
-                              subsample=0.8, colsample_bytree=0.8, random_state=42, 
-                              objective='reg:squarederror', n_jobs=-1)
-    
-    hybrid_nn_xgb_model.fit(train_hybrid_nn_xgb_features_np, y_train_final)
+        hybrid_nn_xgb_model = XGBRegressor(n_estimators=300, max_depth=6, learning_rate=0.1, 
+                                subsample=0.8, colsample_bytree=0.8, random_state=42, 
+                                objective='reg:squarederror', n_jobs=-1)
+        
+        hybrid_nn_xgb_model.fit(train_hybrid_nn_xgb_features_np, y_train_final)
 
-    with open(os.path.join(models_dir, "best_hybrid_nn_xgb_model.pkl"), 'wb') as f:
-        pickle.dump(hybrid_nn_xgb_model, f)
+        with open(os.path.join(models_dir, "best_hybrid_nn_xgb_model.pkl"), 'wb') as f:
+            pickle.dump(hybrid_nn_xgb_model, f)
 
-    print(f"✅ Hybrid NN-XGBoost model saved to {os.path.join(models_dir, 'best_hybrid_nn_xgb_model.pkl')}")
+        print(f"✅ Hybrid NN-XGBoost model saved to {os.path.join(models_dir, 'best_hybrid_nn_xgb_model.pkl')}")
     
     # Predict on test set
     y_pred_hybrid = hybrid_nn_xgb_model.predict(test_hybrid_nn_xgb_features_np)
@@ -433,5 +439,5 @@ if __name__ == "__main__":
     print(f"  - {os.path.join(models_dir, 'rf_model.pkl')}")
     print(f"  - {os.path.join(models_dir, 'xgb_model.json')}")
     print(f"  - {os.path.join(models_dir, 'best_hybrid_nn_model.pth')}")
-    print(f"  - {os.path.join(models_dir, 'best_hybrid_xgb_model.pkl')}")
+    print(f"  - {os.path.join(models_dir, 'best_hybrid_nn_xgb_model.pkl')}")
     print("\nUpload these files to your GitHub repository.")

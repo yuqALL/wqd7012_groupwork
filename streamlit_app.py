@@ -27,12 +27,12 @@ model_dir = os.path.join(base_dir, "model")
 
 RF_MODEL_PATH = os.path.join(model_dir, "rf_model.pkl")
 XGB_MODEL_PATH = os.path.join(model_dir, "xgb_model.pkl")
-NN_MODEL_PATH = os.path.join(model_dir, "best_hybrid_nn_model.pth") 
-HYBRID_NN_XGB_MODEL_PATH = os.path.join(model_dir, "best_hybrid_nn_xgb.pkl")
+NN_MODEL_PATH = os.path.join(model_dir, "best_nn_model.pth") 
+HYBRID_NN_XGB_MODEL_PATH = os.path.join(model_dir, "best_hybrid_nn_xgb_model.pkl")
 MODEL_URL_RF = "https://raw.githubusercontent.com/yuqALL/wqd7012_groupwork/main/model/rf_model.pkl"
 MODEL_URL_XGB = "https://raw.githubusercontent.com/yuqALL/wqd7012_groupwork/main/model/xgb_model.pkl"
-MODEL_URL_NN = "https://raw.githubusercontent.com/yuqALL/wqd7012_groupwork/main/model/best_hybrid_nn_model.pth"
-MODEL_URL_HYBRID_NN_XGB = "https://raw.githubusercontent.com/yuqALL/wqd7012_groupwork/main/model/best_hybrid_nn_xgb.pkl"
+MODEL_URL_NN = "https://raw.githubusercontent.com/yuqALL/wqd7012_groupwork/main/model/best_nn_model.pth"
+MODEL_URL_HYBRID_NN_XGB = "https://raw.githubusercontent.com/yuqALL/wqd7012_groupwork/main/model/best_hybrid_nn_xgb_model.pkl"
 
 def download_models():
     success = True
@@ -222,7 +222,7 @@ def main():
     })
     st.dataframe(format_table, width='stretch')
 
-    sample_csv_path = os.path.join(os.path.dirname(__file__), 'sample_input.csv')
+    sample_csv_path = os.path.join(data_dir, "sample_input.csv")
     if os.path.exists(sample_csv_path):
         sample_preview = pd.read_csv(sample_csv_path, nrows=3)
 
