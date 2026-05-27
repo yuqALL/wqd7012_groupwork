@@ -133,11 +133,11 @@ def load_hybrid_models():
 
 def main():
     st.set_page_config(
-        page_title="River Water Quality Prediction and Contamination Detection using Machine Learning",
+        page_title="River Water Quality Prediction and Contamination Assessment using Machine Learning",
         page_icon="🏞️",
         layout="wide"
     )
-    st.title("🏞️ River Water Quality Prediction and Contamination Detection using Machine Learning")
+    st.title("🏞️ River Water Quality Prediction and Contamination Assessment using Machine Learning")
 
     with st.sidebar:
         st.header("🔧 Model Selection")
