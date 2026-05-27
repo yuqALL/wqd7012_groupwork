@@ -198,7 +198,7 @@ def main():
             st.sidebar.error("❌ Hybrid NN-XGBoost model file not found on GitHub...")
             st.stop()
 
-    st.markdown("### Input Water Quality Parameters")
+    st.markdown("### Input Water Quality Variables")
 
     st.markdown("""
     **Expected Input Format:**
@@ -473,7 +473,7 @@ def main():
         except Exception as e:
             st.error(f"Error processing file: {str(e)}")
     else:
-        st.info("Please upload a CSV or Excel file containing water quality parameters to make predictions.")
+        st.info("Please upload a CSV or Excel file containing water quality variables to make predictions.")
 
     if st.session_state.get('last_prediction_done'):
         display_df = st.session_state.prediction_display_df
@@ -618,7 +618,7 @@ def main():
             else:
                 dash_df['Timestamp'] = pd.to_datetime(dash_df['Timestamp'])
                 dash_df = dash_df.reset_index(drop=True)
-                st.markdown("#### Parameter Average Trends")
+                st.markdown("#### Variable Average Trends")
 
                 param_columns = [
                     'Dissolved Oxygen (mg/L)', 'Nitrate (mg/L)', 'Nitrogen (mg/L)',
@@ -630,7 +630,7 @@ def main():
                     col_a, col_b = st.columns(2)
 
                     with col_a:
-                        selected_param = st.selectbox("Select Parameter", available_params)
+                        selected_param = st.selectbox("Select Variable", available_params)
 
                     with col_b:
                         period = st.selectbox("Select Time Period", ["Weekly", "Monthly", "Yearly"])
@@ -694,7 +694,7 @@ def main():
                     st.altair_chart(line_chart, width='stretch')
                    
                 else:
-                    st.info("No water quality parameter columns found in the uploaded file.")
+                    st.info("No water quality variable columns found in the uploaded file.")
 
                 st.markdown("---")
                 st.markdown("#### Contamination Level Rates")
